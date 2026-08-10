@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/KisuFit/',
   plugins: [
     react(),
     tailwindcss(),
@@ -18,7 +19,8 @@ export default defineConfig({
         theme_color: '#0b0b0f',
         background_color: '#0b0b0f',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/KisuFit/',
+        scope: '/KisuFit/',
         icons: [
           { src: 'icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
           { src: 'icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
