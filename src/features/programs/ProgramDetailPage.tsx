@@ -6,7 +6,6 @@ import { Fab } from '../../components/common/Fab'
 import { db, newId } from '../../db/db'
 import { EXERCISES } from '../../data/exercises'
 import { formatRest } from '../../utils/format'
-import { MuscleDiagram } from '../../components/common/MuscleDiagram'
 import type { EditorContext } from './editorContext'
 
 export function ProgramDetailPage() {
@@ -102,8 +101,7 @@ export function ProgramDetailPage() {
           if (!ex) return null
           return (
             <div key={pe.id} className="flex items-center gap-3 rounded-xl bg-[var(--color-surface)] px-4 py-3">
-              <MuscleDiagram muscleGroup={ex.muscleGroup} className="h-11 w-7 shrink-0" />
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[10px] font-semibold text-[var(--color-muted)]">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-xs font-semibold text-[var(--color-muted)]">
                 {i + 1}
               </div>
               <div className="flex-1">

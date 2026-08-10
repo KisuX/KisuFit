@@ -2,18 +2,38 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Trophy, SkipForward, Trash2, Play, Pause } from 'lucide-react'
+import { X, Trophy, SkipForward, Trash2, Play, Pause, ChevronDown } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { db, newId } from '../../db/db'
 import { EXERCISES } from '../../data/exercises'
 import { NumberStepper } from '../../components/common/NumberStepper'
-import { MuscleDiagram } from '../../components/common/MuscleDiagram'
+import { ExerciseSwitcherSheet } from './ExerciseSwitcherSheet'
 import { useRestTimer } from '../../hooks/useRestTimer'
 import { getLastSetPerformance, evaluatePersonalRecord, getPersonalRecord, type PersonalRecord } from '../../utils/workout'
 import { formatRest } from '../../utils/format'
-import type { PRType, ProgramExercise } from '../../types'
+import type { Exercise, PRType, ProgramExercise } from '../../types'
 
 type Phase = 'active' | 'celebrating' | 'resting'
+
+function exerciseSets(pe: ProgramExercise, exercise: Exercise | undefined) {
+  return exercise?.muscleGroup === 'Kardiyo' ? 1 : pe.sets
+}
+
+/** Sıradaki henüz tamamlanmamış hareketi programdaki sıraya göre (baştan sararak) bulur. */
+function findNextIncompleteIndex(
+  fromIndex: number,
+  list: ProgramExercise[],
+  completed: Record<string, number>,
+): number | null {
+  const n = list.length
+  for (let offset = 1; offset <= n; offset++) {
+    const idx = (fromIndex + offset) % n
+    const pe = list[idx]
+    const exercise = EXERCISES.find((e) => e.id === pe.exerciseId)
+    if ((completed[pe.id] ?? 0) < exerciseSets(pe, exercise)) return idx
+  }
+  return null
+}
 
 export function WorkoutSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
@@ -26,7 +46,7 @@ export function WorkoutSessionPage() {
   }, [session?.programId])
 
   const [exerciseIndex, setExerciseIndex] = useState(0)
-  const [setIndex, setSetIndex] = useState(0)
+  const [completedSets, setCompletedSets] = useState<Record<string, number>>({})
   const [reps, setReps] = useState(10)
   const [weight, setWeight] = useState(20)
   const [phase, setPhase] = useState<Phase>('active')
@@ -36,14 +56,28 @@ export function WorkoutSessionPage() {
   const [cardioSeconds, setCardioSeconds] = useState(0)
   const [cardioRunning, setCardioRunning] = useState(false)
   const [inclineValue, setInclineValue] = useState(0)
+  const [restNextLabel, setRestNextLabel] = useState('')
+  const [switcherOpen, setSwitcherOpen] = useState(false)
 
   const current = programExercises?.[exerciseIndex]
   const currentExercise = current ? EXERCISES.find((e) => e.id === current.exerciseId) : undefined
   const isCardio = currentExercise?.muscleGroup === 'Kardiyo'
-  const effectiveSets = isCardio ? 1 : (current?.sets ?? 1)
-  const nextExercise = programExercises?.[exerciseIndex + 1]
-    ? EXERCISES.find((e) => e.id === programExercises[exerciseIndex + 1].exerciseId)
-    : undefined
+  const effectiveSets = current ? exerciseSets(current, currentExercise) : 1
+  const setIndex = current ? (completedSets[current.id] ?? 0) : 0
+
+  function advance(completedOverride?: Record<string, number>) {
+    if (!current || !programExercises) return
+    setPhase('active')
+    const completed = completedOverride ?? completedSets
+    const doneCount = completed[current.id] ?? 0
+    if (doneCount < effectiveSets) return
+    const nextIdx = findNextIncompleteIndex(exerciseIndex, programExercises, completed)
+    if (nextIdx === null) {
+      finishWorkout()
+      return
+    }
+    setExerciseIndex(nextIdx)
+  }
 
   const restTimer = useRestTimer(() => advance())
 
@@ -96,10 +130,9 @@ export function WorkoutSessionPage() {
   }
 
   const totalExercises = programExercises?.length ?? 0
-  const isVeryLastSet = setIndex + 1 >= effectiveSets && exerciseIndex + 1 >= totalExercises
 
   async function finishSet() {
-    if (!current || !currentExercise || !sessionId) return
+    if (!current || !currentExercise || !sessionId || !programExercises) return
 
     let isPR = false
     let type: PRType = null
@@ -140,21 +173,28 @@ export function WorkoutSessionPage() {
       })
     }
 
-    // kardiyo hareketlerinin öncesinde ve sonrasında dinlenme yok
-    const movingToNextExercise = setIndex + 1 >= effectiveSets
-    const upcomingExercise = movingToNextExercise
-      ? programExercises?.[exerciseIndex + 1]
-        ? EXERCISES.find((e) => e.id === programExercises[exerciseIndex + 1].exerciseId)
+    const newCompleted = { ...completedSets, [current.id]: (completedSets[current.id] ?? 0) + 1 }
+    setCompletedSets(newCompleted)
+
+    const doneCount = newCompleted[current.id] ?? 0
+    const willMoveOn = doneCount >= effectiveSets
+    const nextIdx = willMoveOn ? findNextIncompleteIndex(exerciseIndex, programExercises, newCompleted) : null
+    const allDone = willMoveOn && nextIdx === null
+    const upcomingExercise = willMoveOn
+      ? nextIdx !== null
+        ? EXERCISES.find((e) => e.id === programExercises[nextIdx].exerciseId)
         : undefined
       : currentExercise
+    // kardiyo hareketlerinin öncesinde ve sonrasında dinlenme yok
     const skipRest = isCardio || upcomingExercise?.muscleGroup === 'Kardiyo'
 
     const proceed = () => {
-      if (isVeryLastSet) {
+      if (allDone) {
         finishWorkout()
       } else if (skipRest) {
-        advance()
+        advance(newCompleted)
       } else {
+        setRestNextLabel(willMoveOn ? (upcomingExercise?.name ?? '') : `${doneCount + 1}. Set`)
         setPhase('resting')
         restTimer.start(current.restSeconds)
       }
@@ -168,21 +208,6 @@ export function WorkoutSessionPage() {
     } else {
       proceed()
     }
-  }
-
-  async function advance() {
-    if (!current || !programExercises) return
-    setPhase('active')
-    if (setIndex + 1 < effectiveSets) {
-      setSetIndex((s) => s + 1)
-      return
-    }
-    if (exerciseIndex + 1 < programExercises.length) {
-      setExerciseIndex((i) => i + 1)
-      setSetIndex(0)
-      return
-    }
-    await finishWorkout()
   }
 
   async function finishWorkout() {
@@ -200,10 +225,23 @@ export function WorkoutSessionPage() {
     if (ok) navigate('/programlar', { replace: true })
   }
 
+  function jumpToExercise(idx: number) {
+    if (phase !== 'active') return
+    setExerciseIndex(idx)
+    setSwitcherOpen(false)
+  }
+
   const progressLabel = useMemo(() => {
     if (!totalExercises) return ''
     return `Hareket ${exerciseIndex + 1}/${totalExercises}`
   }, [exerciseIndex, totalExercises])
+
+  const switcherItems = useMemo(() => {
+    if (!programExercises) return []
+    return programExercises
+      .map((pe) => ({ pe, exercise: EXERCISES.find((e) => e.id === pe.exerciseId) }))
+      .filter((x): x is { pe: ProgramExercise; exercise: Exercise } => !!x.exercise)
+  }, [programExercises])
 
   if (session === undefined || programExercises === undefined) return null
   if (!session || !current || !currentExercise) {
@@ -224,10 +262,17 @@ export function WorkoutSessionPage() {
         >
           <X size={20} />
         </button>
-        <div className="text-center">
-          <div className="text-xs font-medium text-[var(--color-muted)]">{progressLabel}</div>
+        <button
+          onClick={() => setSwitcherOpen(true)}
+          disabled={phase !== 'active'}
+          className="flex flex-col items-center text-center disabled:opacity-60"
+        >
+          <div className="flex items-center gap-0.5 text-xs font-medium text-[var(--color-muted)]">
+            {progressLabel}
+            <ChevronDown size={12} />
+          </div>
           <div className="text-sm font-semibold tabular-nums">{formatRest(elapsed)}</div>
-        </div>
+        </button>
         <div className="w-9" />
       </header>
 
@@ -239,10 +284,6 @@ export function WorkoutSessionPage() {
         <p className="mt-1 text-sm text-[var(--color-muted)]">
           {isCardio ? `Hedef: ${formatRest(current.durationSeconds)}` : `Set ${setIndex + 1} / ${effectiveSets}`}
         </p>
-
-        <div className="mt-4 flex items-center justify-center rounded-2xl bg-white p-3">
-          <MuscleDiagram muscleGroup={currentExercise.muscleGroup} tone="light" className="h-32 w-20" />
-        </div>
 
         {isCardio ? (
           <div className="mt-6 flex w-full flex-col items-center gap-5">
@@ -363,16 +404,10 @@ export function WorkoutSessionPage() {
             <div className="my-6 text-7xl font-bold tabular-nums">
               {restTimer.secondsLeft !== null ? formatRest(restTimer.secondsLeft) : '0:00'}
             </div>
-            {setIndex + 1 < effectiveSets ? (
+            {restNextLabel && (
               <p className="text-sm text-[var(--color-muted)]">
-                Sıradaki: <span className="text-[var(--color-text)]">{setIndex + 2}. Set</span>
+                Sıradaki: <span className="text-[var(--color-text)]">{restNextLabel}</span>
               </p>
-            ) : (
-              nextExercise && (
-                <p className="text-sm text-[var(--color-muted)]">
-                  Sıradaki: <span className="text-[var(--color-text)]">{nextExercise.name}</span>
-                </p>
-              )
             )}
             <button
               onClick={restTimer.skip}
@@ -381,6 +416,18 @@ export function WorkoutSessionPage() {
               <SkipForward size={20} /> Atla
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {switcherOpen && (
+          <ExerciseSwitcherSheet
+            items={switcherItems}
+            completedSets={completedSets}
+            currentIndex={exerciseIndex}
+            onSelect={jumpToExercise}
+            onClose={() => setSwitcherOpen(false)}
+          />
         )}
       </AnimatePresence>
     </div>

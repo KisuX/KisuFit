@@ -1,11 +1,35 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
+import { Reorder, useDragControls } from 'framer-motion'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { ExerciseCard, type ExerciseConfig } from './ExerciseCard'
 import { EXERCISES } from '../../data/exercises'
 import { db, newId } from '../../db/db'
 import type { EditorContext } from './editorContext'
+import type { Exercise } from '../../types'
+
+interface SortableExerciseCardProps {
+  exercise: Exercise
+  config: ExerciseConfig
+  onChange: (config: ExerciseConfig) => void
+  onRemove: () => void
+}
+
+function SortableExerciseCard({ exercise, config, onChange, onRemove }: SortableExerciseCardProps) {
+  const dragControls = useDragControls()
+  return (
+    <Reorder.Item value={config} dragListener={false} dragControls={dragControls} as="div">
+      <ExerciseCard
+        exercise={exercise}
+        config={config}
+        onChange={onChange}
+        onRemove={onRemove}
+        onDragHandlePointerDown={(e) => dragControls.start(e)}
+      />
+    </Reorder.Item>
+  )
+}
 
 export function ProgramEditorPage() {
   const navigate = useNavigate()
@@ -23,12 +47,12 @@ export function ProgramEditorPage() {
 
   if (!incoming) return null
 
-  function updateConfig(index: number, config: ExerciseConfig) {
-    setConfigs((prev) => prev.map((c, i) => (i === index ? config : c)))
+  function updateConfig(exerciseId: string, config: ExerciseConfig) {
+    setConfigs((prev) => prev.map((c) => (c.exerciseId === exerciseId ? config : c)))
   }
 
-  function removeConfig(index: number) {
-    setConfigs((prev) => prev.filter((_, i) => i !== index))
+  function removeConfig(exerciseId: string) {
+    setConfigs((prev) => prev.filter((c) => c.exerciseId !== exerciseId))
   }
 
   function addExercises() {
@@ -78,20 +102,22 @@ export function ProgramEditorPage() {
         />
       </div>
 
-      <div className="mt-4 flex flex-1 flex-col gap-3 px-4 pb-28">
-        {configs.map((config, i) => {
-          const exercise = EXERCISES.find((e) => e.id === config.exerciseId)
-          if (!exercise) return null
-          return (
-            <ExerciseCard
-              key={config.exerciseId}
-              exercise={exercise}
-              config={config}
-              onChange={(c) => updateConfig(i, c)}
-              onRemove={() => removeConfig(i)}
-            />
-          )
-        })}
+      <div className="mt-4 flex flex-1 flex-col px-4 pb-28">
+        <Reorder.Group as="div" axis="y" values={configs} onReorder={setConfigs} className="flex flex-col gap-3">
+          {configs.map((config) => {
+            const exercise = EXERCISES.find((e) => e.id === config.exerciseId)
+            if (!exercise) return null
+            return (
+              <SortableExerciseCard
+                key={config.exerciseId}
+                exercise={exercise}
+                config={config}
+                onChange={(c) => updateConfig(config.exerciseId, c)}
+                onRemove={() => removeConfig(config.exerciseId)}
+              />
+            )
+          })}
+        </Reorder.Group>
         {configs.length === 0 && (
           <p className="mt-6 text-center text-sm text-[var(--color-muted)]">
             Henüz hareket yok. Aşağıdan ekleyebilirsin.
@@ -101,7 +127,7 @@ export function ProgramEditorPage() {
         <button
           type="button"
           onClick={addExercises}
-          className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] py-3.5 text-sm font-medium text-[var(--color-muted)] active:bg-[var(--color-surface)]"
+          className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] py-3.5 text-sm font-medium text-[var(--color-muted)] active:bg-[var(--color-surface)]"
         >
           <Plus size={16} /> Hareket Ekle
         </button>

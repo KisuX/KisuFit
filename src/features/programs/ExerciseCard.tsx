@@ -1,6 +1,6 @@
-import { X } from 'lucide-react'
+import type { PointerEvent } from 'react'
+import { GripVertical, X } from 'lucide-react'
 import { NumberStepper } from '../../components/common/NumberStepper'
-import { MuscleDiagram } from '../../components/common/MuscleDiagram'
 import { formatRest } from '../../utils/format'
 import type { Exercise } from '../../types'
 
@@ -19,15 +19,24 @@ interface ExerciseCardProps {
   config: ExerciseConfig
   onChange: (config: ExerciseConfig) => void
   onRemove: () => void
+  onDragHandlePointerDown?: (event: PointerEvent) => void
 }
 
-export function ExerciseCard({ exercise, config, onChange, onRemove }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, config, onChange, onRemove, onDragHandlePointerDown }: ExerciseCardProps) {
   const isCardio = exercise.muscleGroup === 'Kardiyo'
 
   return (
     <div className="rounded-2xl bg-[var(--color-surface)] p-4">
       <div className="mb-3 grid grid-cols-[auto_1fr_auto_auto] items-center gap-2">
-        <MuscleDiagram muscleGroup={exercise.muscleGroup} className="h-11 w-7 shrink-0" />
+        <button
+          type="button"
+          onPointerDown={onDragHandlePointerDown}
+          aria-label="Sürükleyerek sırasını değiştir"
+          className="flex h-7 w-7 cursor-grab items-center justify-center rounded-full text-[var(--color-muted)] active:cursor-grabbing active:bg-[var(--color-surface-2)]"
+          style={{ touchAction: 'none' }}
+        >
+          <GripVertical size={16} />
+        </button>
         <div className="text-[15px] font-semibold leading-tight">{exercise.name}</div>
         <div className="justify-self-center pt-0.5 text-xs text-[var(--color-muted)]">{exercise.muscleGroup}</div>
         <button

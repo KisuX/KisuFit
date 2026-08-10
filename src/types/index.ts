@@ -5,8 +5,14 @@ export type MuscleGroup =
   | 'Biceps'
   | 'Triceps'
   | 'Bacak'
-  | 'Karın'
+  | 'Hamstring'
   | 'Kalça'
+  | 'Baldır'
+  | 'Karın'
+  | 'Ön Kol'
+  | 'Trapez'
+  | 'Boyun'
+  | 'Tüm Vücut'
   | 'Kardiyo'
 
 export interface Exercise {
