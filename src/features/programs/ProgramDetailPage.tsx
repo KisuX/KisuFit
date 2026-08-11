@@ -4,13 +4,14 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Fab } from '../../components/common/Fab'
 import { db, newId } from '../../db/db'
-import { EXERCISES } from '../../data/exercises'
+import { useAllExercises } from '../../hooks/useAllExercises'
 import { formatRest } from '../../utils/format'
 import type { EditorContext } from './editorContext'
 
 export function ProgramDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const allExercises = useAllExercises()
 
   const data = useLiveQuery(async () => {
     if (!id) return null
@@ -97,7 +98,7 @@ export function ProgramDetailPage() {
 
       <div className="flex flex-1 flex-col gap-2 px-4 pt-4 pb-28">
         {data.exercises.map((pe, i) => {
-          const ex = EXERCISES.find((e) => e.id === pe.exerciseId)
+          const ex = allExercises.find((e) => e.id === pe.exerciseId)
           if (!ex) return null
           return (
             <div key={pe.id} className="flex items-center gap-3 rounded-xl bg-[var(--color-surface)] px-4 py-3">

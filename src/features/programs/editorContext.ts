@@ -1,5 +1,5 @@
 import type { ExerciseConfig } from './ExerciseCard'
-import { EXERCISES } from '../../data/exercises'
+import type { Exercise } from '../../types'
 
 export const DEFAULT_EXERCISE_CONFIG = { sets: 3, reps: 10, weight: 20, restSeconds: 90, durationSeconds: 0, incline: null }
 export const DEFAULT_CARDIO_CONFIG = { sets: 1, reps: 0, weight: 0, restSeconds: 0, durationSeconds: 1200, incline: null }
@@ -11,8 +11,8 @@ export interface EditorContext {
   configs: ExerciseConfig[]
 }
 
-function defaultConfigFor(exerciseId: string): ExerciseConfig {
-  const exercise = EXERCISES.find((e) => e.id === exerciseId)
+function defaultConfigFor(exerciseId: string, exercises: Exercise[]): ExerciseConfig {
+  const exercise = exercises.find((e) => e.id === exerciseId)
   if (exercise?.muscleGroup === 'Kardiyo') {
     return { exerciseId, ...DEFAULT_CARDIO_CONFIG, incline: exercise.supportsIncline ? 0 : null }
   }
@@ -20,9 +20,9 @@ function defaultConfigFor(exerciseId: string): ExerciseConfig {
 }
 
 /** Önceki config'leri seçili id listesiyle birleştirir: kalanlar korunur, yeniler varsayılanla eklenir. */
-export function mergeConfigs(prevConfigs: ExerciseConfig[], selectedIds: string[]): ExerciseConfig[] {
+export function mergeConfigs(prevConfigs: ExerciseConfig[], selectedIds: string[], exercises: Exercise[]): ExerciseConfig[] {
   const kept = prevConfigs.filter((c) => selectedIds.includes(c.exerciseId))
   const keptIds = new Set(kept.map((c) => c.exerciseId))
-  const added = selectedIds.filter((id) => !keptIds.has(id)).map(defaultConfigFor)
+  const added = selectedIds.filter((id) => !keptIds.has(id)).map((id) => defaultConfigFor(id, exercises))
   return [...kept, ...added]
 }

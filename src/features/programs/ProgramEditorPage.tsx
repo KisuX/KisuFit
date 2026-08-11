@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { ExerciseCard, type ExerciseConfig } from './ExerciseCard'
-import { EXERCISES } from '../../data/exercises'
+import { useAllExercises } from '../../hooks/useAllExercises'
 import { db, newId } from '../../db/db'
 import type { EditorContext } from './editorContext'
 import type { Exercise } from '../../types'
@@ -36,6 +36,7 @@ export function ProgramEditorPage() {
   const location = useLocation()
   const incoming = (location.state as { editorContext?: EditorContext } | null)?.editorContext
   const programId = incoming?.programId
+  const allExercises = useAllExercises()
 
   const [name, setName] = useState(incoming?.name ?? '')
   const [configs, setConfigs] = useState<ExerciseConfig[]>(incoming?.configs ?? [])
@@ -105,7 +106,7 @@ export function ProgramEditorPage() {
       <div className="mt-4 flex flex-1 flex-col px-4 pb-28">
         <Reorder.Group as="div" axis="y" values={configs} onReorder={setConfigs} className="flex flex-col gap-3">
           {configs.map((config) => {
-            const exercise = EXERCISES.find((e) => e.id === config.exerciseId)
+            const exercise = allExercises.find((e) => e.id === config.exerciseId)
             if (!exercise) return null
             return (
               <SortableExerciseCard

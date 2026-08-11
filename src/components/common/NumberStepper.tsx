@@ -1,11 +1,12 @@
 import { Minus, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
+import type { StepInput } from '../../utils/steppers'
 
 interface NumberStepperProps {
   label: string
   value: number
   onChange: (value: number) => void
-  step?: number
+  step?: StepInput
   min?: number
   max?: number
   formatValue?: (value: number) => string
@@ -22,8 +23,9 @@ export function NumberStepper({
   formatValue,
   size = 'sm',
 }: NumberStepperProps) {
-  const dec = () => onChange(Math.max(min, roundStep(value - step, step)))
-  const inc = () => onChange(Math.min(max, roundStep(value + step, step)))
+  const stepAt = (direction: 'inc' | 'dec') => (typeof step === 'function' ? step(value, direction) : step)
+  const dec = () => onChange(Math.max(min, roundStep(value - stepAt('dec'), stepAt('dec'))))
+  const inc = () => onChange(Math.min(max, roundStep(value + stepAt('inc'), stepAt('inc'))))
   const display = formatValue ? formatValue(value) : value
 
   if (size === 'lg') {

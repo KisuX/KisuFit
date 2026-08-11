@@ -2,6 +2,7 @@ import type { PointerEvent } from 'react'
 import { GripVertical, X } from 'lucide-react'
 import { NumberStepper } from '../../components/common/NumberStepper'
 import { formatRest } from '../../utils/format'
+import { weightStep } from '../../utils/steppers'
 import type { Exercise } from '../../types'
 
 export interface ExerciseConfig {
@@ -89,7 +90,7 @@ export function ExerciseCard({ exercise, config, onChange, onRemove, onDragHandl
             label="Kilo (kg)"
             value={config.weight}
             min={0}
-            step={2.5}
+            step={weightStep}
             onChange={(v) => onChange({ ...config, weight: v })}
           />
           <NumberStepper

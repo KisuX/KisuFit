@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Trophy, SkipForward, Trash2, Play, Pause, ChevronDown } from 'lucide-react'
+import { X, Trophy, SkipForward, Trash2, Play, Pause, Menu, AlarmClock } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { db, newId } from '../../db/db'
-import { EXERCISES } from '../../data/exercises'
+import { useAllExercises } from '../../hooks/useAllExercises'
 import { NumberStepper } from '../../components/common/NumberStepper'
+import { weightStep } from '../../utils/steppers'
 import { ExerciseSwitcherSheet } from './ExerciseSwitcherSheet'
 import { useRestTimer } from '../../hooks/useRestTimer'
 import { getLastSetPerformance, evaluatePersonalRecord, getPersonalRecord, type PersonalRecord } from '../../utils/workout'
@@ -24,12 +25,13 @@ function findNextIncompleteIndex(
   fromIndex: number,
   list: ProgramExercise[],
   completed: Record<string, number>,
+  exercises: Exercise[],
 ): number | null {
   const n = list.length
   for (let offset = 1; offset <= n; offset++) {
     const idx = (fromIndex + offset) % n
     const pe = list[idx]
-    const exercise = EXERCISES.find((e) => e.id === pe.exerciseId)
+    const exercise = exercises.find((e) => e.id === pe.exerciseId)
     if ((completed[pe.id] ?? 0) < exerciseSets(pe, exercise)) return idx
   }
   return null
@@ -38,6 +40,7 @@ function findNextIncompleteIndex(
 export function WorkoutSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
+  const allExercises = useAllExercises()
 
   const session = useLiveQuery(() => (sessionId ? db.workoutSessions.get(sessionId) : undefined), [sessionId])
   const programExercises = useLiveQuery(async () => {
@@ -56,14 +59,18 @@ export function WorkoutSessionPage() {
   const [cardioSeconds, setCardioSeconds] = useState(0)
   const [cardioRunning, setCardioRunning] = useState(false)
   const [inclineValue, setInclineValue] = useState(0)
+  const [timeUpFlash, setTimeUpFlash] = useState(false)
   const [restNextLabel, setRestNextLabel] = useState('')
   const [switcherOpen, setSwitcherOpen] = useState(false)
+  const timeUpAlerted = useRef(false)
 
   const current = programExercises?.[exerciseIndex]
-  const currentExercise = current ? EXERCISES.find((e) => e.id === current.exerciseId) : undefined
+  const currentExercise = current ? allExercises.find((e) => e.id === current.exerciseId) : undefined
   const isCardio = currentExercise?.muscleGroup === 'Kardiyo'
   const effectiveSets = current ? exerciseSets(current, currentExercise) : 1
   const setIndex = current ? (completedSets[current.id] ?? 0) : 0
+  const cardioTarget = current?.durationSeconds ?? 0
+  const cardioOvertime = isCardio && cardioSeconds >= cardioTarget
 
   function advance(completedOverride?: Record<string, number>) {
     if (!current || !programExercises) return
@@ -71,7 +78,7 @@ export function WorkoutSessionPage() {
     const completed = completedOverride ?? completedSets
     const doneCount = completed[current.id] ?? 0
     if (doneCount < effectiveSets) return
-    const nextIdx = findNextIncompleteIndex(exerciseIndex, programExercises, completed)
+    const nextIdx = findNextIncompleteIndex(exerciseIndex, programExercises, completed, allExercises)
     if (nextIdx === null) {
       finishWorkout()
       return
@@ -95,6 +102,17 @@ export function WorkoutSessionPage() {
     return () => clearInterval(t)
   }, [cardioRunning])
 
+  // hedef kardiyo süresine ulaşılınca bir kere uyar, sonra fazladan geçen süreyi saymaya devam et
+  useEffect(() => {
+    if (!isCardio || cardioTarget <= 0) return
+    if (cardioSeconds >= cardioTarget && !timeUpAlerted.current) {
+      timeUpAlerted.current = true
+      setTimeUpFlash(true)
+      if ('vibrate' in navigator) navigator.vibrate(200)
+      setTimeout(() => setTimeUpFlash(false), 2500)
+    }
+  }, [cardioSeconds, cardioTarget, isCardio])
+
   // load suggested reps/weight + personal record (or reset the cardio stopwatch) whenever we move to a new set
   useEffect(() => {
     if (!current) return
@@ -105,6 +123,7 @@ export function WorkoutSessionPage() {
       setCardioRunning(false)
       setInclineValue(0)
       setPersonalRecord(null)
+      timeUpAlerted.current = false
     } else {
       getLastSetPerformance(current.exerciseId, setIndex + 1).then((suggestion) => {
         if (cancelled) return
@@ -178,11 +197,11 @@ export function WorkoutSessionPage() {
 
     const doneCount = newCompleted[current.id] ?? 0
     const willMoveOn = doneCount >= effectiveSets
-    const nextIdx = willMoveOn ? findNextIncompleteIndex(exerciseIndex, programExercises, newCompleted) : null
+    const nextIdx = willMoveOn ? findNextIncompleteIndex(exerciseIndex, programExercises, newCompleted, allExercises) : null
     const allDone = willMoveOn && nextIdx === null
     const upcomingExercise = willMoveOn
       ? nextIdx !== null
-        ? EXERCISES.find((e) => e.id === programExercises[nextIdx].exerciseId)
+        ? allExercises.find((e) => e.id === programExercises[nextIdx].exerciseId)
         : undefined
       : currentExercise
     // kardiyo hareketlerinin öncesinde ve sonrasında dinlenme yok
@@ -239,9 +258,9 @@ export function WorkoutSessionPage() {
   const switcherItems = useMemo(() => {
     if (!programExercises) return []
     return programExercises
-      .map((pe) => ({ pe, exercise: EXERCISES.find((e) => e.id === pe.exerciseId) }))
+      .map((pe) => ({ pe, exercise: allExercises.find((e) => e.id === pe.exerciseId) }))
       .filter((x): x is { pe: ProgramExercise; exercise: Exercise } => !!x.exercise)
-  }, [programExercises])
+  }, [programExercises, allExercises])
 
   if (session === undefined || programExercises === undefined) return null
   if (!session || !current || !currentExercise) {
@@ -262,18 +281,18 @@ export function WorkoutSessionPage() {
         >
           <X size={20} />
         </button>
+        <div className="text-center">
+          <div className="text-xs font-medium text-[var(--color-muted)]">{progressLabel}</div>
+          <div className="text-sm font-semibold tabular-nums">{formatRest(elapsed)}</div>
+        </div>
         <button
           onClick={() => setSwitcherOpen(true)}
           disabled={phase !== 'active'}
-          className="flex flex-col items-center text-center disabled:opacity-60"
+          aria-label="Hareket değiştir"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface)] disabled:opacity-40"
         >
-          <div className="flex items-center gap-0.5 text-xs font-medium text-[var(--color-muted)]">
-            {progressLabel}
-            <ChevronDown size={12} />
-          </div>
-          <div className="text-sm font-semibold tabular-nums">{formatRest(elapsed)}</div>
+          <Menu size={20} />
         </button>
-        <div className="w-9" />
       </header>
 
       <div className="flex flex-1 flex-col items-center px-5 pt-4 text-center">
@@ -282,12 +301,30 @@ export function WorkoutSessionPage() {
         </div>
         <h1 className="text-2xl font-bold leading-tight">{currentExercise.name}</h1>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
-          {isCardio ? `Hedef: ${formatRest(current.durationSeconds)}` : `Set ${setIndex + 1} / ${effectiveSets}`}
+          {isCardio ? `Hedef: ${formatRest(cardioTarget)}` : `Set ${setIndex + 1} / ${effectiveSets}`}
         </p>
 
         {isCardio ? (
           <div className="mt-6 flex w-full flex-col items-center gap-5">
-            <div className="text-6xl font-bold tabular-nums">{formatRest(cardioSeconds)}</div>
+            <div>
+              <div
+                className={`text-6xl font-bold tabular-nums transition-colors ${
+                  cardioOvertime ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]'
+                }`}
+              >
+                {cardioOvertime ? '+' : ''}
+                {formatRest(cardioOvertime ? cardioSeconds - cardioTarget : cardioTarget - cardioSeconds)}
+              </div>
+              {timeUpFlash && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-2 flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--color-accent)]"
+                >
+                  <AlarmClock size={16} /> Hedef süre doldu!
+                </motion.p>
+              )}
+            </div>
             <button
               onClick={() => setCardioRunning((r) => !r)}
               className={`flex items-center gap-2 rounded-full px-8 py-3.5 text-base font-semibold ${
@@ -314,7 +351,7 @@ export function WorkoutSessionPage() {
           <>
             <div className="mt-6 flex w-full flex-col gap-4">
               <NumberStepper label="Tekrar" value={reps} min={0} onChange={setReps} size="lg" />
-              <NumberStepper label="Kilo (kg)" value={weight} min={0} step={2.5} onChange={setWeight} size="lg" />
+              <NumberStepper label="Kilo (kg)" value={weight} min={0} step={weightStep} onChange={setWeight} size="lg" />
             </div>
 
             {personalRecord && (

@@ -1,35 +1,39 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Search, Check } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Search, Check, Plus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { MuscleGroupChip } from '../../components/common/MuscleGroupChip'
-import { EXERCISES, MUSCLE_GROUPS } from '../../data/exercises'
+import { MUSCLE_GROUPS } from '../../data/exercises'
+import { useAllExercises } from '../../hooks/useAllExercises'
 import { mergeConfigs, type EditorContext } from './editorContext'
+import { AddCustomExerciseSheet } from './AddCustomExerciseSheet'
 
 export function ExercisePickerPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const incoming = (location.state as { editorContext?: EditorContext } | null)?.editorContext
+  const allExercises = useAllExercises()
 
   const [query, setQuery] = useState('')
   const [group, setGroup] = useState<string>('Tümü')
   const [selected, setSelected] = useState<string[]>(() => incoming?.configs.map((c) => c.exerciseId) ?? [])
+  const [addOpen, setAddOpen] = useState(false)
 
   const filtered = useMemo(() => {
-    return EXERCISES.filter((e) => {
+    return allExercises.filter((e) => {
       const matchesGroup = group === 'Tümü' || e.muscleGroup === group
       const matchesQuery = e.name.toLocaleLowerCase('tr').includes(query.toLocaleLowerCase('tr'))
       return matchesGroup && matchesQuery
     })
-  }, [query, group])
+  }, [allExercises, query, group])
 
   function toggle(id: string) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
   function proceed() {
-    const configs = mergeConfigs(incoming?.configs ?? [], selected)
+    const configs = mergeConfigs(incoming?.configs ?? [], selected, allExercises)
     const editorContext: EditorContext = { programId: incoming?.programId, name: incoming?.name ?? '', configs }
     navigate('/programlar/editor', { state: { editorContext } })
   }
@@ -58,6 +62,14 @@ export function ExercisePickerPage() {
       </div>
 
       <div className="mt-3 flex-1 overflow-y-auto px-4 pb-28">
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] py-3 text-sm font-medium text-[var(--color-muted)] active:bg-[var(--color-surface)]"
+        >
+          <Plus size={16} /> Kendi Hareketini Ekle
+        </button>
+
         <div className="flex flex-col gap-2">
           {filtered.map((ex) => {
             const isSelected = selected.includes(ex.id)
@@ -101,6 +113,18 @@ export function ExercisePickerPage() {
           </button>
         </div>
       )}
+
+      <AnimatePresence>
+        {addOpen && (
+          <AddCustomExerciseSheet
+            onClose={() => setAddOpen(false)}
+            onAdded={(exercise) => {
+              setSelected((prev) => [...prev, exercise.id])
+              setAddOpen(false)
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
