@@ -7,6 +7,7 @@ import { db, newId } from '../../db/db'
 import { useAllExercises } from '../../hooks/useAllExercises'
 import { formatRest } from '../../utils/format'
 import { useProfile } from '../../context/ProfileContext'
+import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import type { EditorContext } from './editorContext'
 
 export function ProgramDetailPage() {
@@ -14,6 +15,7 @@ export function ProgramDetailPage() {
   const navigate = useNavigate()
   const allExercises = useAllExercises()
   const { profileId } = useProfile()
+  const { t, language } = useLanguage()
 
   const data = useLiveQuery(async () => {
     if (!id) return null
@@ -58,7 +60,7 @@ export function ProgramDetailPage() {
 
   async function deleteProgram() {
     if (!data) return
-    const ok = window.confirm(`"${data.program.name}" programını silmek istediğine emin misin?`)
+    const ok = window.confirm(t('programDetail.deleteConfirm', { name: data.program.name }))
     if (!ok) return
     await db.programExercises.where('programId').equals(data.program.id).delete()
     await db.programs.delete(data.program.id)
@@ -70,7 +72,7 @@ export function ProgramDetailPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <PageHeader title="Program" />
-        <p className="mt-10 text-center text-sm text-[var(--color-muted)]">Program bulunamadı.</p>
+        <p className="mt-10 text-center text-sm text-[var(--color-muted)]">{t('programDetail.notFound')}</p>
       </div>
     )
   }
@@ -83,14 +85,14 @@ export function ProgramDetailPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={editProgram}
-              aria-label="Programı düzenle"
+              aria-label={t('programDetail.editProgram')}
               className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface)]"
             >
               <Pencil size={18} />
             </button>
             <button
               onClick={deleteProgram}
-              aria-label="Programı sil"
+              aria-label={t('programDetail.deleteProgram')}
               className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface)]"
             >
               <Trash2 size={18} />
@@ -110,13 +112,17 @@ export function ProgramDetailPage() {
               </div>
               <div className="flex-1">
                 <div className="text-sm font-medium">{ex.name}</div>
-                <div className="text-xs text-[var(--color-muted)]">{ex.muscleGroup}</div>
+                <div className="text-xs text-[var(--color-muted)]">{translateMuscleGroup(ex.muscleGroup, language)}</div>
               </div>
               <div className="text-right text-xs text-[var(--color-muted)]">
                 {ex.muscleGroup === 'Kardiyo' ? (
                   <>
                     <div className="font-semibold text-[var(--color-text)]">{formatRest(pe.durationSeconds)}</div>
-                    <div>{ex.supportsIncline ? `Eğim %${pe.incline ?? 0}` : 'Kardiyo'}</div>
+                    <div>
+                      {ex.supportsIncline
+                        ? t('programDetail.inclinePercent', { value: pe.incline ?? 0 })
+                        : t('programDetail.cardio')}
+                    </div>
                   </>
                 ) : (
                   <>
@@ -134,7 +140,7 @@ export function ProgramDetailPage() {
         })}
       </div>
 
-      <Fab onClick={startWorkout} icon={<Play size={24} className="ml-0.5" />} aria-label="Antrenmanı başlat" />
+      <Fab onClick={startWorkout} icon={<Play size={24} className="ml-0.5" />} aria-label={t('programDetail.startWorkout')} />
     </div>
   )
 }

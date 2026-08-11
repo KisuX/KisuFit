@@ -4,12 +4,14 @@ import { Clock, Layers, TrendingUp, Trophy, History } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { db } from '../../db/db'
 import { useProfile } from '../../context/ProfileContext'
+import { useLanguage } from '../../i18n/LanguageContext'
 import { computeSessionStats } from '../../utils/workout'
 import { formatDateLong, formatDuration } from '../../utils/format'
 
 export function WorkoutHistoryPage() {
   const navigate = useNavigate()
   const { profileId } = useProfile()
+  const { t, locale } = useLanguage()
 
   const sessions = useLiveQuery(async () => {
     const finished = await db.workoutSessions
@@ -25,7 +27,7 @@ export function WorkoutHistoryPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Antrenman Geçmişi" />
+      <PageHeader title={t('history.title')} />
 
       <div className="flex flex-col gap-2 px-4 pt-4 pb-6">
         {sessions && sessions.length === 0 && (
@@ -33,7 +35,7 @@ export function WorkoutHistoryPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-surface)]">
               <History size={28} className="text-[var(--color-muted)]" />
             </div>
-            <p className="text-sm text-[var(--color-muted)]">Henüz tamamlanmış bir antrenman yok.</p>
+            <p className="text-sm text-[var(--color-muted)]">{t('history.emptyState')}</p>
           </div>
         )}
 
@@ -47,7 +49,7 @@ export function WorkoutHistoryPage() {
               <div>
                 <div className="font-semibold">{session.programName}</div>
                 <div className="text-xs text-[var(--color-muted)]">
-                  {formatDateLong(session.finishedAt ?? session.startedAt)}
+                  {formatDateLong(session.finishedAt ?? session.startedAt, locale)}
                 </div>
               </div>
               {stats.prCount > 0 && (
@@ -61,10 +63,10 @@ export function WorkoutHistoryPage() {
                 <Clock size={14} /> {formatDuration(stats.durationSec)}
               </span>
               <span className="flex items-center gap-1">
-                <Layers size={14} /> {stats.totalSets} set
+                <Layers size={14} /> {stats.totalSets} {t('common.set')}
               </span>
               <span className="flex items-center gap-1">
-                <TrendingUp size={14} /> {stats.totalVolume} kg
+                <TrendingUp size={14} /> {stats.totalVolume} {t('common.kg')}
               </span>
             </div>
           </button>

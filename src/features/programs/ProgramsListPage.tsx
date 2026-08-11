@@ -5,10 +5,12 @@ import { db } from '../../db/db'
 import { Fab } from '../../components/common/Fab'
 import { formatDateLong } from '../../utils/format'
 import { useProfile } from '../../context/ProfileContext'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 export function ProgramsListPage() {
   const navigate = useNavigate()
   const { profileId } = useProfile()
+  const { t, locale } = useLanguage()
 
   const programs = useLiveQuery(async () => {
     const all = await db.programs.where('profileId').equals(profileId).sortBy('createdAt')
@@ -29,8 +31,8 @@ export function ProgramsListPage() {
 
   return (
     <div className="px-4 pt-6">
-      <h1 className="mb-1 text-2xl font-bold">Programlar</h1>
-      <p className="mb-5 text-sm text-[var(--color-muted)]">Antrenman programlarını oluştur ve takip et</p>
+      <h1 className="mb-1 text-2xl font-bold">{t('programsList.title')}</h1>
+      <p className="mb-5 text-sm text-[var(--color-muted)]">{t('programsList.subtitle')}</p>
 
       {programs && programs.length === 0 && (
         <div className="mt-16 flex flex-col items-center gap-3 text-center">
@@ -38,9 +40,9 @@ export function ProgramsListPage() {
             <Dumbbell size={28} className="text-[var(--color-muted)]" />
           </div>
           <p className="text-sm text-[var(--color-muted)]">
-            Henüz bir programın yok.
+            {t('programsList.emptyState')}
             <br />
-            Sağ alttaki + ile ilk programını oluştur.
+            {t('programsList.emptyStateHint')}
           </p>
         </div>
       )}
@@ -55,7 +57,8 @@ export function ProgramsListPage() {
             <div>
               <div className="font-semibold">{p.name}</div>
               <div className="mt-1 text-xs text-[var(--color-muted)]">
-                {p.exerciseCount} hareket · {p.lastDate ? formatDateLong(p.lastDate) : 'Henüz yapılmadı'}
+                {p.exerciseCount} {t('programsList.exercises')} ·{' '}
+                {p.lastDate ? formatDateLong(p.lastDate, locale) : t('programsList.neverDone')}
               </div>
             </div>
             <ChevronRight size={20} className="text-[var(--color-muted)]" />
@@ -66,7 +69,7 @@ export function ProgramsListPage() {
       <Fab
         onClick={() => navigate('/programlar/hareketler')}
         icon={<Plus size={26} />}
-        aria-label="Yeni program oluştur"
+        aria-label={t('programsList.newProgram')}
       />
     </div>
   )

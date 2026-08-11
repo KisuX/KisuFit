@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import type { BodyWeightEntry } from '../../types'
 import { formatDateShort } from '../../utils/format'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 interface WeightChartProps {
   entries: BodyWeightEntry[]
@@ -16,10 +17,12 @@ interface WeightChartProps {
 }
 
 export function WeightChart({ entries, goal }: WeightChartProps) {
+  const { t, locale } = useLanguage()
+
   if (entries.length < 2) {
     return (
       <div className="flex h-48 items-center justify-center rounded-2xl bg-[var(--color-surface)] px-6 text-center text-sm text-[var(--color-muted)]">
-        Grafiği görmek için en az 2 kilo kaydı ekle.
+        {t('weight.chartEmpty')}
       </div>
     )
   }
@@ -36,7 +39,7 @@ export function WeightChart({ entries, goal }: WeightChartProps) {
         <LineChart data={entries} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
           <XAxis
             dataKey="date"
-            tickFormatter={formatDateShort}
+            tickFormatter={(v) => formatDateShort(v, locale)}
             stroke="var(--color-muted)"
             tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
             tickLine={false}
@@ -60,15 +63,15 @@ export function WeightChart({ entries, goal }: WeightChartProps) {
               borderRadius: 12,
               fontSize: 12,
             }}
-            labelFormatter={(v) => formatDateShort(String(v))}
-            formatter={(v) => [`${v} kg`, 'Kilo']}
+            labelFormatter={(v) => formatDateShort(String(v), locale)}
+            formatter={(v) => [`${v} ${t('common.kg')}`, t('weight.tooltipLabel')]}
           />
           {goal && (
             <ReferenceLine
               y={goal}
               stroke="var(--color-gold)"
               strokeDasharray="4 4"
-              label={{ value: 'Hedef', position: 'insideTopRight', fill: 'var(--color-gold)', fontSize: 11 }}
+              label={{ value: t('weight.goalRefLabel'), position: 'insideTopRight', fill: 'var(--color-gold)', fontSize: 11 }}
             />
           )}
           <Line

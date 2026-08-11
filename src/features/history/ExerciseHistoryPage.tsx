@@ -5,6 +5,7 @@ import { Trophy } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { db } from '../../db/db'
 import { useProfile } from '../../context/ProfileContext'
+import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import { useAllExercises } from '../../hooks/useAllExercises'
 import { getPersonalRecord } from '../../utils/workout'
 import { formatRest } from '../../utils/format'
@@ -13,6 +14,7 @@ import { ExerciseProgressChart } from './ExerciseProgressChart'
 export function ExerciseHistoryPage() {
   const { exerciseId } = useParams<{ exerciseId: string }>()
   const { profileId } = useProfile()
+  const { t, language, locale } = useLanguage()
   const allExercises = useAllExercises()
   const exercise = allExercises.find((e) => e.id === exerciseId)
   const isCardio = exercise?.muscleGroup === 'Kardiyo'
@@ -46,18 +48,22 @@ export function ExerciseHistoryPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title={exercise?.name ?? 'Hareket'} />
+      <PageHeader title={exercise?.name ?? t('exerciseHistory.title')} />
 
       <div className="flex flex-1 flex-col gap-4 px-4 pt-4 pb-8">
-        {exercise && <div className="-mt-2 text-xs font-medium text-[var(--color-accent)] uppercase">{exercise.muscleGroup}</div>}
+        {exercise && (
+          <div className="-mt-2 text-xs font-medium text-[var(--color-accent)] uppercase">
+            {translateMuscleGroup(exercise.muscleGroup, language)}
+          </div>
+        )}
 
         {!isCardio && data.record && (
           <div className="flex items-center gap-2 rounded-2xl bg-[var(--color-surface)] p-4">
             <Trophy size={18} className="text-[var(--color-gold)]" />
             <div>
-              <div className="text-xs text-[var(--color-muted)]">Kişisel Rekor</div>
+              <div className="text-xs text-[var(--color-muted)]">{t('exerciseHistory.personalRecord')}</div>
               <div className="text-sm font-semibold">
-                {data.record.reps} tekrar × {data.record.weight} kg
+                {data.record.reps} {t('common.reps')} × {data.record.weight} {t('common.kg')}
               </div>
             </div>
           </div>
@@ -65,13 +71,13 @@ export function ExerciseHistoryPage() {
 
         <ExerciseProgressChart
           points={points}
-          unit={isCardio ? 'sn' : 'kg'}
-          emptyLabel="İlerlemeyi görmek için bu hareketi en az 2 farklı günde yap."
+          unit={isCardio ? (language === 'en' ? 's' : 'sn') : t('common.kg')}
+          emptyLabel={t('exerciseHistory.chartEmpty')}
         />
 
         {recent.length > 0 && (
           <div>
-            <div className="mb-2 text-sm font-semibold">Son Setler</div>
+            <div className="mb-2 text-sm font-semibold">{t('exerciseHistory.recentSets')}</div>
             <div className="flex flex-col gap-1.5">
               {recent.map((log) => (
                 <div
@@ -79,11 +85,11 @@ export function ExerciseHistoryPage() {
                   className="flex items-center justify-between rounded-xl bg-[var(--color-surface)] px-4 py-2.5"
                 >
                   <span className="text-sm text-[var(--color-muted)]">
-                    {new Date(log.completedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                    {new Date(log.completedAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">
-                      {isCardio ? formatRest(log.durationSeconds ?? 0) : `${log.reps} × ${log.weight} kg`}
+                      {isCardio ? formatRest(log.durationSeconds ?? 0) : `${log.reps} × ${log.weight} ${t('common.kg')}`}
                     </span>
                     {log.isPR && <Trophy size={14} className="text-[var(--color-gold)]" />}
                   </div>
@@ -94,9 +100,7 @@ export function ExerciseHistoryPage() {
         )}
 
         {recent.length === 0 && (
-          <p className="mt-10 text-center text-sm text-[var(--color-muted)]">
-            Bu hareket için henüz kayıt yok.
-          </p>
+          <p className="mt-10 text-center text-sm text-[var(--color-muted)]">{t('exerciseHistory.noRecords')}</p>
         )}
       </div>
     </div>

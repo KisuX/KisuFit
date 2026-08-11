@@ -6,23 +6,27 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { MuscleGroupChip } from '../../components/common/MuscleGroupChip'
 import { MUSCLE_GROUPS } from '../../data/exercises'
 import { useAllExercises } from '../../hooks/useAllExercises'
+import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import { mergeConfigs, type EditorContext } from './editorContext'
 import { AddCustomExerciseSheet } from './AddCustomExerciseSheet'
+
+const ALL = '__all__'
 
 export function ExercisePickerPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const incoming = (location.state as { editorContext?: EditorContext } | null)?.editorContext
   const allExercises = useAllExercises()
+  const { t, language } = useLanguage()
 
   const [query, setQuery] = useState('')
-  const [group, setGroup] = useState<string>('Tümü')
+  const [group, setGroup] = useState<string>(ALL)
   const [selected, setSelected] = useState<string[]>(() => incoming?.configs.map((c) => c.exerciseId) ?? [])
   const [addOpen, setAddOpen] = useState(false)
 
   const filtered = useMemo(() => {
     return allExercises.filter((e) => {
-      const matchesGroup = group === 'Tümü' || e.muscleGroup === group
+      const matchesGroup = group === ALL || e.muscleGroup === group
       const matchesQuery = e.name.toLocaleLowerCase('tr').includes(query.toLocaleLowerCase('tr'))
       return matchesGroup && matchesQuery
     })
@@ -40,7 +44,7 @@ export function ExercisePickerPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Hareket Seç" />
+      <PageHeader title={t('exercisePicker.title')} />
 
       <div className="px-4 pt-4">
         <div className="relative">
@@ -48,15 +52,15 @@ export function ExercisePickerPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Hareket ara..."
+            placeholder={t('exercisePicker.searchPlaceholder')}
             className="w-full rounded-xl bg-[var(--color-surface)] py-2.5 pl-9 pr-3 text-sm outline-none placeholder:text-[var(--color-muted)] focus:ring-1 focus:ring-[var(--color-accent)]"
           />
         </div>
 
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <MuscleGroupChip label="Tümü" active={group === 'Tümü'} onClick={() => setGroup('Tümü')} />
+          <MuscleGroupChip label={t('exercisePicker.all')} active={group === ALL} onClick={() => setGroup(ALL)} />
           {MUSCLE_GROUPS.map((g) => (
-            <MuscleGroupChip key={g} label={g} active={group === g} onClick={() => setGroup(g)} />
+            <MuscleGroupChip key={g} label={translateMuscleGroup(g, language)} active={group === g} onClick={() => setGroup(g)} />
           ))}
         </div>
       </div>
@@ -67,7 +71,7 @@ export function ExercisePickerPage() {
           onClick={() => setAddOpen(true)}
           className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] py-3 text-sm font-medium text-[var(--color-muted)] active:bg-[var(--color-surface)]"
         >
-          <Plus size={16} /> Kendi Hareketini Ekle
+          <Plus size={16} /> {t('exercisePicker.addCustom')}
         </button>
 
         <div className="flex flex-col gap-2">
@@ -87,7 +91,7 @@ export function ExercisePickerPage() {
               >
                 <div className="flex-1">
                   <div className="text-sm font-medium">{ex.name}</div>
-                  <div className="text-xs text-[var(--color-muted)]">{ex.muscleGroup}</div>
+                  <div className="text-xs text-[var(--color-muted)]">{translateMuscleGroup(ex.muscleGroup, language)}</div>
                 </div>
                 {isSelected && (
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)]">
@@ -98,7 +102,7 @@ export function ExercisePickerPage() {
             )
           })}
           {filtered.length === 0 && (
-            <p className="mt-10 text-center text-sm text-[var(--color-muted)]">Hareket bulunamadı</p>
+            <p className="mt-10 text-center text-sm text-[var(--color-muted)]">{t('exercisePicker.noResults')}</p>
           )}
         </div>
       </div>
@@ -109,7 +113,7 @@ export function ExercisePickerPage() {
             onClick={proceed}
             className="w-full rounded-xl bg-[var(--color-accent)] py-3.5 text-center font-semibold text-white"
           >
-            Devam Et ({selected.length})
+            {t('exercisePicker.continue')} ({selected.length})
           </button>
         </div>
       )}

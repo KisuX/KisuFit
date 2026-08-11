@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Plus } from 'lucide-react'
 import { db, newId } from '../../db/db'
+import { useLanguage } from '../../i18n/LanguageContext'
 import type { Profile } from '../../types'
 
 interface ProfileSwitcherSheetProps {
@@ -11,6 +12,7 @@ interface ProfileSwitcherSheetProps {
 }
 
 export function ProfileSwitcherSheet({ currentProfileId, onSelect, onClose }: ProfileSwitcherSheetProps) {
+  const { t } = useLanguage()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [showCreate, setShowCreate] = useState(false)
   const [name, setName] = useState('')
@@ -39,7 +41,7 @@ export function ProfileSwitcherSheet({ currentProfileId, onSelect, onClose }: Pr
         className="max-h-[80vh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-[var(--color-surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--color-border)]" />
-        <h2 className="mb-4 text-lg font-semibold">Profil Değiştir</h2>
+        <h2 className="mb-4 text-lg font-semibold">{t('profileSwitcher.title')}</h2>
 
         <div className="flex flex-col gap-2">
           {profiles.map((p) => (
@@ -64,7 +66,7 @@ export function ProfileSwitcherSheet({ currentProfileId, onSelect, onClose }: Pr
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Yeni profil adı"
+              placeholder={t('profileSwitcher.newProfilePlaceholder')}
               className="mb-3 w-full rounded-xl bg-[var(--color-surface-2)] px-4 py-3 text-[15px] font-medium outline-none placeholder:text-[var(--color-muted)] focus:ring-1 focus:ring-[var(--color-accent)]"
             />
             <button
@@ -72,7 +74,7 @@ export function ProfileSwitcherSheet({ currentProfileId, onSelect, onClose }: Pr
               disabled={!name.trim() || creating}
               className="w-full rounded-xl bg-[var(--color-accent)] py-3 text-center font-semibold text-white disabled:opacity-40"
             >
-              Oluştur ve Geç
+              {t('profileSwitcher.createAndSwitch')}
             </button>
           </div>
         ) : (
@@ -80,7 +82,7 @@ export function ProfileSwitcherSheet({ currentProfileId, onSelect, onClose }: Pr
             onClick={() => setShowCreate(true)}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] py-3 text-sm font-medium text-[var(--color-muted)]"
           >
-            <Plus size={16} /> Yeni Profil Oluştur
+            <Plus size={16} /> {t('profileSwitcher.createNew')}
           </button>
         )}
       </motion.div>

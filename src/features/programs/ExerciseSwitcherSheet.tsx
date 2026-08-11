@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Check } from 'lucide-react'
+import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import type { Exercise, ProgramExercise } from '../../types'
 
 interface ExerciseSwitcherSheetProps {
@@ -15,6 +16,7 @@ function totalFor(pe: ProgramExercise, exercise: Exercise) {
 }
 
 export function ExerciseSwitcherSheet({ items, completedSets, currentIndex, onSelect, onClose }: ExerciseSwitcherSheetProps) {
+  const { t, language } = useLanguage()
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
       <motion.div
@@ -26,10 +28,8 @@ export function ExerciseSwitcherSheet({ items, completedSets, currentIndex, onSe
         className="max-h-[75vh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-[var(--color-surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--color-border)]" />
-        <h2 className="mb-1 text-lg font-semibold">Hareketler</h2>
-        <p className="mb-4 text-sm text-[var(--color-muted)]">
-          Sıra dışında geçiş yapabilirsin, örneğin makine doluysa başka bir hareketle devam et.
-        </p>
+        <h2 className="mb-1 text-lg font-semibold">{t('workout.switcherTitle')}</h2>
+        <p className="mb-4 text-sm text-[var(--color-muted)]">{t('workout.switcherSubtitle')}</p>
         <div className="flex flex-col gap-2">
           {items.map(({ pe, exercise }, i) => {
             const total = totalFor(pe, exercise)
@@ -48,7 +48,7 @@ export function ExerciseSwitcherSheet({ items, completedSets, currentIndex, onSe
               >
                 <div>
                   <div className="text-sm font-medium">{exercise.name}</div>
-                  <div className="text-xs text-[var(--color-muted)]">{exercise.muscleGroup}</div>
+                  <div className="text-xs text-[var(--color-muted)]">{translateMuscleGroup(exercise.muscleGroup, language)}</div>
                 </div>
                 {isDone ? (
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-success)]">
@@ -56,7 +56,7 @@ export function ExerciseSwitcherSheet({ items, completedSets, currentIndex, onSe
                   </div>
                 ) : (
                   <div className="text-xs font-medium text-[var(--color-muted)]">
-                    {done}/{total} set
+                    {t('workout.setsOf', { done, total })}
                   </div>
                 )}
               </button>

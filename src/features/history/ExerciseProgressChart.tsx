@@ -1,5 +1,6 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { formatDateShort } from '../../utils/format'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 interface ProgressPoint {
   date: string
@@ -13,6 +14,8 @@ interface ExerciseProgressChartProps {
 }
 
 export function ExerciseProgressChart({ points, unit, emptyLabel }: ExerciseProgressChartProps) {
+  const { t, locale } = useLanguage()
+
   if (points.length < 2) {
     return (
       <div className="flex h-48 items-center justify-center rounded-2xl bg-[var(--color-surface)] px-6 text-center text-sm text-[var(--color-muted)]">
@@ -32,7 +35,7 @@ export function ExerciseProgressChart({ points, unit, emptyLabel }: ExerciseProg
         <LineChart data={points} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
           <XAxis
             dataKey="date"
-            tickFormatter={formatDateShort}
+            tickFormatter={(v) => formatDateShort(v, locale)}
             stroke="var(--color-muted)"
             tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
             tickLine={false}
@@ -56,8 +59,8 @@ export function ExerciseProgressChart({ points, unit, emptyLabel }: ExerciseProg
               borderRadius: 12,
               fontSize: 12,
             }}
-            labelFormatter={(v) => formatDateShort(String(v))}
-            formatter={(v) => [`${v} ${unit}`, 'Değer']}
+            labelFormatter={(v) => formatDateShort(String(v), locale)}
+            formatter={(v) => [`${v} ${unit}`, t('exerciseHistory.valueLabel')]}
           />
           <Line
             type="monotone"

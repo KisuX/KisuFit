@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ChevronRight, User } from 'lucide-react'
 import { db, newId } from '../../db/db'
 import { setActiveProfileId } from '../../db/profile'
+import { useLanguage } from '../../i18n/LanguageContext'
 import type { Profile } from '../../types'
 
 interface ProfileGatePageProps {
@@ -9,6 +10,7 @@ interface ProfileGatePageProps {
 }
 
 export function ProfileGatePage({ onReady }: ProfileGatePageProps) {
+  const { t } = useLanguage()
   const [profiles, setProfiles] = useState<Profile[] | null>(null)
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -40,17 +42,17 @@ export function ProfileGatePage({ onReady }: ProfileGatePageProps) {
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col justify-center bg-[var(--color-bg)] px-6">
       {showWelcomeForm ? (
         <>
-          <h1 className="text-2xl font-bold">{profiles.length === 0 ? 'Hoş Geldin' : 'Yeni Profil'}</h1>
+          <h1 className="text-2xl font-bold">
+            {profiles.length === 0 ? t('profileGate.welcomeTitle') : t('profileGate.newProfileTitle')}
+          </h1>
           <p className="mt-1 mb-6 text-sm text-[var(--color-muted)]">
-            {profiles.length === 0
-              ? 'KisuFit tamamen bu cihazda çalışır. Başlamak için bir isim gir.'
-              : 'Bu cihazda ayrı bir profil daha oluşturabilirsin — verileri birbirinden bağımsız olur.'}
+            {profiles.length === 0 ? t('profileGate.welcomeSubtitle') : t('profileGate.newProfileSubtitle')}
           </p>
           <input
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Adın"
+            placeholder={t('profileGate.namePlaceholder')}
             className="mb-4 w-full rounded-xl bg-[var(--color-surface)] px-4 py-3 text-[15px] font-medium outline-none placeholder:text-[var(--color-muted)] focus:ring-1 focus:ring-[var(--color-accent)]"
           />
           <button
@@ -58,21 +60,21 @@ export function ProfileGatePage({ onReady }: ProfileGatePageProps) {
             disabled={!name.trim() || creating}
             className="w-full rounded-xl bg-[var(--color-accent)] py-3.5 text-center font-semibold text-white disabled:opacity-40"
           >
-            Başla
+            {t('profileGate.start')}
           </button>
           {profiles.length > 0 && (
             <button
               onClick={() => setShowCreateForm(false)}
               className="mt-3 w-full rounded-xl py-3 text-center text-sm font-medium text-[var(--color-muted)]"
             >
-              Vazgeç
+              {t('profileGate.cancel')}
             </button>
           )}
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-bold">Profil Seç</h1>
-          <p className="mt-1 mb-6 text-sm text-[var(--color-muted)]">Devam etmek için bir profil seç.</p>
+          <h1 className="text-2xl font-bold">{t('profileGate.chooseProfile')}</h1>
+          <p className="mt-1 mb-6 text-sm text-[var(--color-muted)]">{t('profileGate.chooseProfileSubtitle')}</p>
           <div className="flex flex-col gap-2">
             {profiles.map((p) => (
               <button
@@ -92,7 +94,7 @@ export function ProfileGatePage({ onReady }: ProfileGatePageProps) {
             onClick={() => setShowCreateForm(true)}
             className="mt-4 w-full rounded-xl border border-dashed border-[var(--color-border)] py-3 text-center text-sm font-medium text-[var(--color-muted)]"
           >
-            + Yeni Profil Oluştur
+            {t('profileGate.createNew')}
           </button>
         </>
       )}

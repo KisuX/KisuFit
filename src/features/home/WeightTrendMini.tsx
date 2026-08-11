@@ -1,13 +1,15 @@
 import type { BodyWeightEntry } from '../../types'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 interface WeightTrendMiniProps {
   entries: BodyWeightEntry[]
 }
 
 export function WeightTrendMini({ entries }: WeightTrendMiniProps) {
+  const { t } = useLanguage()
   const recent = entries.slice(-10)
   if (recent.length < 2) {
-    return <p className="text-sm text-[var(--color-muted)]">En az 2 kayıt eklendiğinde trend burada görünecek.</p>
+    return <p className="text-sm text-[var(--color-muted)]">{t('home.trendEmpty')}</p>
   }
 
   const weights = recent.map((e) => e.weight)
@@ -31,7 +33,7 @@ export function WeightTrendMini({ entries }: WeightTrendMiniProps) {
       </svg>
       <div className="text-right">
         <div className="text-lg font-bold">{recent[recent.length - 1].weight} kg</div>
-        <div className="text-xs text-[var(--color-muted)]">son kayıt</div>
+        <div className="text-xs text-[var(--color-muted)]">{t('home.latestEntry')}</div>
       </div>
     </div>
   )

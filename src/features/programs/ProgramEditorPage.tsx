@@ -7,6 +7,7 @@ import { ExerciseCard, type ExerciseConfig } from './ExerciseCard'
 import { useAllExercises } from '../../hooks/useAllExercises'
 import { db, newId } from '../../db/db'
 import { useProfile } from '../../context/ProfileContext'
+import { useLanguage } from '../../i18n/LanguageContext'
 import type { EditorContext } from './editorContext'
 import type { Exercise } from '../../types'
 
@@ -39,6 +40,7 @@ export function ProgramEditorPage() {
   const programId = incoming?.programId
   const allExercises = useAllExercises()
   const { profileId } = useProfile()
+  const { t } = useLanguage()
 
   const [name, setName] = useState(incoming?.name ?? '')
   const [configs, setConfigs] = useState<ExerciseConfig[]>(incoming?.configs ?? [])
@@ -95,13 +97,13 @@ export function ProgramEditorPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title={programId ? 'Programı Düzenle' : 'Yeni Program'} />
+      <PageHeader title={programId ? t('programEditor.titleEdit') : t('programEditor.titleNew')} />
 
       <div className="px-4 pt-4">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Program adı (örn. İtme Günü)"
+          placeholder={t('programEditor.namePlaceholder')}
           className="w-full rounded-xl bg-[var(--color-surface)] px-4 py-3 text-[15px] font-medium outline-none placeholder:text-[var(--color-muted)] focus:ring-1 focus:ring-[var(--color-accent)]"
         />
       </div>
@@ -123,9 +125,7 @@ export function ProgramEditorPage() {
           })}
         </Reorder.Group>
         {configs.length === 0 && (
-          <p className="mt-6 text-center text-sm text-[var(--color-muted)]">
-            Henüz hareket yok. Aşağıdan ekleyebilirsin.
-          </p>
+          <p className="mt-6 text-center text-sm text-[var(--color-muted)]">{t('programEditor.emptyState')}</p>
         )}
 
         <button
@@ -133,7 +133,7 @@ export function ProgramEditorPage() {
           onClick={addExercises}
           className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] py-3.5 text-sm font-medium text-[var(--color-muted)] active:bg-[var(--color-surface)]"
         >
-          <Plus size={16} /> Hareket Ekle
+          <Plus size={16} /> {t('programEditor.addExercise')}
         </button>
       </div>
 
@@ -143,7 +143,7 @@ export function ProgramEditorPage() {
           disabled={!name.trim() || configs.length === 0 || saving}
           className="w-full rounded-xl bg-[var(--color-accent)] py-3.5 text-center font-semibold text-white disabled:opacity-40"
         >
-          Programı Kaydet
+          {t('programEditor.saveProgram')}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { StepInput } from '../../utils/steppers'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 interface NumberStepperProps {
   label: string
@@ -23,10 +24,13 @@ export function NumberStepper({
   formatValue,
   size = 'sm',
 }: NumberStepperProps) {
+  const { t } = useLanguage()
   const stepAt = (direction: 'inc' | 'dec') => (typeof step === 'function' ? step(value, direction) : step)
   const dec = () => onChange(Math.max(min, roundStep(value - stepAt('dec'), stepAt('dec'))))
   const inc = () => onChange(Math.min(max, roundStep(value + stepAt('inc'), stepAt('inc'))))
   const display = formatValue ? formatValue(value) : value
+  const decLabel = `${label} ${t('common.decrease')}`
+  const incLabel = `${label} ${t('common.increase')}`
 
   if (size === 'lg') {
     return (
@@ -38,7 +42,7 @@ export function NumberStepper({
             whileTap={{ scale: 0.88 }}
             onClick={dec}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-border)] text-[var(--color-text)] active:bg-[var(--color-accent-soft)]"
-            aria-label={`${label} azalt`}
+            aria-label={decLabel}
           >
             <Minus size={20} />
           </motion.button>
@@ -48,7 +52,7 @@ export function NumberStepper({
             whileTap={{ scale: 0.88 }}
             onClick={inc}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-accent)] text-white"
-            aria-label={`${label} arttır`}
+            aria-label={incLabel}
           >
             <Plus size={20} />
           </motion.button>
@@ -68,7 +72,7 @@ export function NumberStepper({
           whileTap={{ scale: 0.88 }}
           onClick={dec}
           className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-border)] text-[var(--color-text)] active:bg-[var(--color-accent-soft)]"
-          aria-label={`${label} azalt`}
+          aria-label={decLabel}
         >
           <Minus size={14} />
         </motion.button>
@@ -78,7 +82,7 @@ export function NumberStepper({
           whileTap={{ scale: 0.88 }}
           onClick={inc}
           className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent)] text-white"
-          aria-label={`${label} arttır`}
+          aria-label={incLabel}
         >
           <Plus size={14} />
         </motion.button>

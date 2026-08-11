@@ -4,7 +4,9 @@ import { AppShell } from './components/layout/AppShell'
 import { db, ensureSeeded } from './db/db'
 import { getActiveProfileId } from './db/profile'
 import { ProfileProvider } from './context/ProfileContext'
+import { LanguageProvider } from './i18n/LanguageContext'
 import { ProfileGatePage } from './features/profile/ProfileGatePage'
+import { AboutPage } from './features/settings/AboutPage'
 import { HomePage } from './features/home/HomePage'
 import { ProgramsListPage } from './features/programs/ProgramsListPage'
 import { ExercisePickerPage } from './features/programs/ExercisePickerPage'
@@ -39,31 +41,36 @@ function App() {
 
   if (boot.status === 'gate') {
     return (
-      <ProfileGatePage onReady={(profileId, profileName) => setBoot({ status: 'ready', profileId, profileName })} />
+      <LanguageProvider>
+        <ProfileGatePage onReady={(profileId, profileName) => setBoot({ status: 'ready', profileId, profileName })} />
+      </LanguageProvider>
     )
   }
 
   return (
-    <ProfileProvider initialProfileId={boot.profileId} initialProfileName={boot.profileName}>
-      <HashRouter>
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/programlar" element={<ProgramsListPage />} />
-            <Route path="/programlar/hareketler" element={<ExercisePickerPage />} />
-            <Route path="/programlar/editor" element={<ProgramEditorPage />} />
-            <Route path="/programlar/:id" element={<ProgramDetailPage />} />
-            <Route path="/antrenman/:sessionId" element={<WorkoutSessionPage />} />
-            <Route path="/antrenman/:sessionId/ozet" element={<WorkoutSummaryPage />} />
-            <Route path="/kilo" element={<WeightPage />} />
-            <Route path="/ayarlar" element={<SettingsPage />} />
-            <Route path="/gecmis" element={<WorkoutHistoryPage />} />
-            <Route path="/gecmis/:sessionId" element={<WorkoutSessionDetailPage />} />
-            <Route path="/hareket/:exerciseId" element={<ExerciseHistoryPage />} />
-          </Route>
-        </Routes>
-      </HashRouter>
-    </ProfileProvider>
+    <LanguageProvider>
+      <ProfileProvider initialProfileId={boot.profileId} initialProfileName={boot.profileName}>
+        <HashRouter>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/programlar" element={<ProgramsListPage />} />
+              <Route path="/programlar/hareketler" element={<ExercisePickerPage />} />
+              <Route path="/programlar/editor" element={<ProgramEditorPage />} />
+              <Route path="/programlar/:id" element={<ProgramDetailPage />} />
+              <Route path="/antrenman/:sessionId" element={<WorkoutSessionPage />} />
+              <Route path="/antrenman/:sessionId/ozet" element={<WorkoutSummaryPage />} />
+              <Route path="/kilo" element={<WeightPage />} />
+              <Route path="/ayarlar" element={<SettingsPage />} />
+              <Route path="/ayarlar/hakkinda" element={<AboutPage />} />
+              <Route path="/gecmis" element={<WorkoutHistoryPage />} />
+              <Route path="/gecmis/:sessionId" element={<WorkoutSessionDetailPage />} />
+              <Route path="/hareket/:exerciseId" element={<ExerciseHistoryPage />} />
+            </Route>
+          </Routes>
+        </HashRouter>
+      </ProfileProvider>
+    </LanguageProvider>
   )
 }
 

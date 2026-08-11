@@ -4,6 +4,7 @@ import { Dumbbell, Scale, Flame, Settings } from 'lucide-react'
 import { db, settingKey } from '../../db/db'
 import { computeSessionStats } from '../../utils/workout'
 import { useProfile } from '../../context/ProfileContext'
+import { useLanguage } from '../../i18n/LanguageContext'
 import { RecentWorkoutCard } from './RecentWorkoutCard'
 import { WeightTrendMini } from './WeightTrendMini'
 
@@ -15,16 +16,10 @@ function startOfWeek(date: Date) {
   return d.getTime()
 }
 
-function greeting() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Günaydın'
-  if (h < 18) return 'İyi günler'
-  return 'İyi akşamlar'
-}
-
 export function HomePage() {
   const navigate = useNavigate()
   const { profileId } = useProfile()
+  const { t, locale } = useLanguage()
 
   const data = useLiveQuery(async () => {
     const weekStart = startOfWeek(new Date())
@@ -49,18 +44,25 @@ export function HomePage() {
 
   const hasAnyData = data && (data.lastSession || data.weightEntries.length > 0)
 
+  function greeting() {
+    const h = new Date().getHours()
+    if (h < 12) return t('home.greetingMorning')
+    if (h < 18) return t('home.greetingAfternoon')
+    return t('home.greetingEvening')
+  }
+
   return (
     <div className="px-4 pt-6 pb-6">
       <div className="mb-5 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">{greeting()}</h1>
           <p className="text-sm text-[var(--color-muted)]">
-            {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
         <button
           onClick={() => navigate('/ayarlar')}
-          aria-label="Ayarlar"
+          aria-label={t('home.settingsLabel')}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface)] text-[var(--color-muted)] active:opacity-80"
         >
           <Settings size={20} />
@@ -71,15 +73,15 @@ export function HomePage() {
         <div className="rounded-2xl bg-[var(--color-surface)] p-4">
           <Flame size={18} className="mb-2 text-[var(--color-accent)]" />
           <div className="text-xl font-bold">{data?.weeklyCount ?? 0}</div>
-          <div className="text-xs text-[var(--color-muted)]">bu hafta antrenman</div>
+          <div className="text-xs text-[var(--color-muted)]">{t('home.thisWeekWorkouts')}</div>
         </div>
         <div className="rounded-2xl bg-[var(--color-surface)] p-4">
           <Scale size={18} className="mb-2 text-[var(--color-accent)]" />
           <div className="text-xl font-bold">{data?.currentWeight ?? '–'} kg</div>
           <div className="text-xs text-[var(--color-muted)]">
             {data?.remaining !== null && data?.remaining !== undefined
-              ? `hedefe ${data.remaining.toFixed(1)} kg kaldı`
-              : 'güncel kilo'}
+              ? t('home.remainingToGoal', { value: data.remaining.toFixed(1) })
+              : t('home.currentWeight')}
           </div>
         </div>
       </div>
@@ -87,9 +89,9 @@ export function HomePage() {
       {data?.lastSession && data.lastStats && (
         <div className="mb-5">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold">Son Antrenman</span>
+            <span className="text-sm font-semibold">{t('home.lastWorkout')}</span>
             <button onClick={() => navigate('/gecmis')} className="text-xs font-medium text-[var(--color-accent)]">
-              Tüm Antrenmanları Gör
+              {t('home.seeAllWorkouts')}
             </button>
           </div>
           <RecentWorkoutCard
@@ -104,9 +106,9 @@ export function HomePage() {
       {data && data.weightEntries.length > 0 && (
         <div className="mb-5 rounded-2xl bg-[var(--color-surface)] p-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-semibold">Kilo Trendi</span>
+            <span className="text-sm font-semibold">{t('home.weightTrend')}</span>
             <button onClick={() => navigate('/kilo')} className="text-xs font-medium text-[var(--color-accent)]">
-              Detaylar
+              {t('home.details')}
             </button>
           </div>
           <WeightTrendMini entries={data.weightEntries} />
@@ -118,21 +120,19 @@ export function HomePage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-surface)]">
             <Dumbbell size={28} className="text-[var(--color-muted)]" />
           </div>
-          <p className="text-sm text-[var(--color-muted)]">
-            Henüz veri yok. Bir program oluşturarak veya kilonu ekleyerek başla.
-          </p>
+          <p className="text-sm text-[var(--color-muted)]">{t('home.emptyState')}</p>
           <div className="flex w-full gap-3">
             <button
               onClick={() => navigate('/programlar')}
               className="flex-1 rounded-xl bg-[var(--color-accent)] py-3 text-sm font-semibold text-white"
             >
-              Program Oluştur
+              {t('home.createProgram')}
             </button>
             <button
               onClick={() => navigate('/kilo')}
               className="flex-1 rounded-xl bg-[var(--color-surface)] py-3 text-sm font-semibold"
             >
-              Kilo Ekle
+              {t('home.addWeight')}
             </button>
           </div>
         </div>

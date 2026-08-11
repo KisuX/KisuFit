@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 interface GoalWeightSheetProps {
   initialValue: number | null
@@ -8,6 +9,7 @@ interface GoalWeightSheetProps {
 }
 
 export function GoalWeightSheet({ initialValue, onSave, onClose }: GoalWeightSheetProps) {
+  const { t } = useLanguage()
   const [value, setValue] = useState(initialValue ? String(initialValue) : '')
 
   function handleSave() {
@@ -27,14 +29,14 @@ export function GoalWeightSheet({ initialValue, onSave, onClose }: GoalWeightShe
         className="w-full max-w-[480px] rounded-t-3xl bg-[var(--color-surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--color-border)]" />
-        <h2 className="mb-1 text-lg font-semibold">Hedef Kilo</h2>
-        <p className="mb-4 text-sm text-[var(--color-muted)]">Ulaşmak istediğin kiloyu belirle.</p>
+        <h2 className="mb-1 text-lg font-semibold">{t('weight.goalSheetTitle')}</h2>
+        <p className="mb-4 text-sm text-[var(--color-muted)]">{t('weight.goalSheetSubtitle')}</p>
         <input
           autoFocus
           inputMode="decimal"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="örn. 75"
+          placeholder={t('weight.goalPlaceholder')}
           className="w-full rounded-xl bg-[var(--color-surface-2)] px-4 py-3 text-lg font-semibold outline-none placeholder:text-[var(--color-muted)] focus:ring-1 focus:ring-[var(--color-accent)]"
         />
         <div className="mt-5 flex gap-3">
@@ -42,13 +44,13 @@ export function GoalWeightSheet({ initialValue, onSave, onClose }: GoalWeightShe
             onClick={onClose}
             className="flex-1 rounded-xl bg-[var(--color-surface-2)] py-3 font-medium"
           >
-            Vazgeç
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
             className="flex-1 rounded-xl bg-[var(--color-accent)] py-3 font-semibold text-white"
           >
-            Kaydet
+            {t('common.save')}
           </button>
         </div>
       </motion.div>

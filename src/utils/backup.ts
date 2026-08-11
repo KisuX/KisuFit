@@ -71,15 +71,18 @@ function isBackupData(value: unknown): value is BackupData {
   return v.version === 1 && Array.isArray(v.programs) && Array.isArray(v.setLogs)
 }
 
-export async function parseBackupFile(file: File): Promise<BackupData> {
+export async function parseBackupFile(
+  file: File,
+  messages: { unreadable: string; invalid: string },
+): Promise<BackupData> {
   const text = await file.text()
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
   } catch {
-    throw new Error('Dosya okunamadı: geçerli bir JSON değil.')
+    throw new Error(messages.unreadable)
   }
-  if (!isBackupData(parsed)) throw new Error('Bu dosya bir KisuFit yedeği gibi görünmüyor.')
+  if (!isBackupData(parsed)) throw new Error(messages.invalid)
   return parsed
 }
 

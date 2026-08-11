@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { NumberStepper } from '../../components/common/NumberStepper'
 import { weightStep } from '../../utils/steppers'
 import { formatRest } from '../../utils/format'
+import { useLanguage } from '../../i18n/LanguageContext'
 import type { SetLog } from '../../types'
 
 interface EditSetSheetProps {
@@ -13,6 +14,7 @@ interface EditSetSheetProps {
 }
 
 export function EditSetSheet({ log, isCardio, onSave, onClose }: EditSetSheetProps) {
+  const { t } = useLanguage()
   const [reps, setReps] = useState(log.reps)
   const [weight, setWeight] = useState(log.weight)
   const [durationSeconds, setDurationSeconds] = useState(log.durationSeconds ?? 0)
@@ -37,13 +39,15 @@ export function EditSetSheet({ log, isCardio, onSave, onClose }: EditSetSheetPro
         className="w-full max-w-[480px] rounded-t-3xl bg-[var(--color-surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--color-border)]" />
-        <h2 className="mb-4 text-lg font-semibold">{log.exerciseName} · Set {log.setNumber}</h2>
+        <h2 className="mb-4 text-lg font-semibold">
+          {log.exerciseName} · {t('common.set')} {log.setNumber}
+        </h2>
 
         <div className="flex flex-col gap-3">
           {isCardio ? (
             <>
               <NumberStepper
-                label="Süre"
+                label={t('exerciseCard.duration')}
                 value={durationSeconds}
                 min={0}
                 step={5}
@@ -53,7 +57,7 @@ export function EditSetSheet({ log, isCardio, onSave, onClose }: EditSetSheetPro
               />
               {log.incline !== null && (
                 <NumberStepper
-                  label="Eğim (%)"
+                  label={t('exerciseCard.incline')}
                   value={incline}
                   min={0}
                   max={15}
@@ -66,18 +70,25 @@ export function EditSetSheet({ log, isCardio, onSave, onClose }: EditSetSheetPro
             </>
           ) : (
             <>
-              <NumberStepper label="Tekrar" value={reps} min={0} onChange={setReps} size="lg" />
-              <NumberStepper label="Kilo (kg)" value={weight} min={0} step={weightStep} onChange={setWeight} size="lg" />
+              <NumberStepper label={t('exerciseCard.reps')} value={reps} min={0} onChange={setReps} size="lg" />
+              <NumberStepper
+                label={t('exerciseCard.weight')}
+                value={weight}
+                min={0}
+                step={weightStep}
+                onChange={setWeight}
+                size="lg"
+              />
             </>
           )}
         </div>
 
         <div className="mt-5 flex gap-3">
           <button onClick={onClose} className="flex-1 rounded-xl bg-[var(--color-surface-2)] py-3 font-medium">
-            Vazgeç
+            {t('common.cancel')}
           </button>
           <button onClick={save} className="flex-1 rounded-xl bg-[var(--color-accent)] py-3 font-semibold text-white">
-            Kaydet
+            {t('common.save')}
           </button>
         </div>
       </motion.div>

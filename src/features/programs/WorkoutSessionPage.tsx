@@ -7,12 +7,15 @@ import confetti from 'canvas-confetti'
 import { db, newId } from '../../db/db'
 import { useAllExercises } from '../../hooks/useAllExercises'
 import { useProfile } from '../../context/ProfileContext'
+import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import { NumberStepper } from '../../components/common/NumberStepper'
 import { weightStep } from '../../utils/steppers'
 import { ExerciseSwitcherSheet } from './ExerciseSwitcherSheet'
 import { useRestTimer } from '../../hooks/useRestTimer'
+import { useNotificationsEnabled } from '../../hooks/useNotificationsEnabled'
 import { getLastSetPerformance, evaluatePersonalRecord, getPersonalRecord, type PersonalRecord } from '../../utils/workout'
 import { formatRest } from '../../utils/format'
+import { notify } from '../../utils/notifications'
 import type { Exercise, PRType, ProgramExercise } from '../../types'
 
 type Phase = 'active' | 'celebrating' | 'resting'
@@ -43,6 +46,8 @@ export function WorkoutSessionPage() {
   const navigate = useNavigate()
   const allExercises = useAllExercises()
   const { profileId } = useProfile()
+  const { t, language } = useLanguage()
+  const notificationsEnabled = useNotificationsEnabled()
 
   const session = useLiveQuery(async () => {
     if (!sessionId) return undefined
@@ -92,7 +97,10 @@ export function WorkoutSessionPage() {
     setExerciseIndex(nextIdx)
   }
 
-  const restTimer = useRestTimer(() => advance())
+  const restTimer = useRestTimer(() => {
+    if (notificationsEnabled) notify(t('workout.restDoneNotification'), restNextLabel || undefined)
+    advance()
+  })
 
   // elapsed session timer
   useEffect(() => {
@@ -115,9 +123,10 @@ export function WorkoutSessionPage() {
       timeUpAlerted.current = true
       setTimeUpFlash(true)
       if ('vibrate' in navigator) navigator.vibrate(200)
+      if (notificationsEnabled) notify(t('workout.cardioTargetNotification'), currentExercise?.name)
       setTimeout(() => setTimeUpFlash(false), 2500)
     }
-  }, [cardioSeconds, cardioTarget, isCardio])
+  }, [cardioSeconds, cardioTarget, isCardio, notificationsEnabled, t, currentExercise])
 
   // load suggested reps/weight + personal record (or reset the cardio stopwatch) whenever we move to a new set
   useEffect(() => {
@@ -148,7 +157,7 @@ export function WorkoutSessionPage() {
 
   async function deleteRecord() {
     if (!personalRecord) return
-    const ok = window.confirm('Bu rekor kaydını silmek istediğine emin misin?')
+    const ok = window.confirm(t('workout.deleteRecordConfirm'))
     if (!ok || !current) return
     await db.setLogs.delete(personalRecord.id)
     setPersonalRecord(await getPersonalRecord(profileId, current.exerciseId))
@@ -221,7 +230,7 @@ export function WorkoutSessionPage() {
       } else if (skipRest) {
         advance(newCompleted)
       } else {
-        setRestNextLabel(willMoveOn ? (upcomingExercise?.name ?? '') : `${doneCount + 1}. Set`)
+        setRestNextLabel(willMoveOn ? (upcomingExercise?.name ?? '') : t('workout.nextSet', { n: doneCount + 1 }))
         setPhase('resting')
         restTimer.start(current.restSeconds)
       }
@@ -248,7 +257,7 @@ export function WorkoutSessionPage() {
   }
 
   function handleExit() {
-    const ok = window.confirm('Antrenmandan çıkmak istediğine emin misin? Bu antrenman kaydedilmeyecek.')
+    const ok = window.confirm(t('workout.exitConfirm'))
     if (ok) navigate('/programlar', { replace: true })
   }
 
@@ -260,8 +269,8 @@ export function WorkoutSessionPage() {
 
   const progressLabel = useMemo(() => {
     if (!totalExercises) return ''
-    return `Hareket ${exerciseIndex + 1}/${totalExercises}`
-  }, [exerciseIndex, totalExercises])
+    return t('workout.exerciseProgress', { current: exerciseIndex + 1, total: totalExercises })
+  }, [exerciseIndex, totalExercises, t])
 
   const switcherItems = useMemo(() => {
     if (!programExercises) return []
@@ -274,7 +283,7 @@ export function WorkoutSessionPage() {
   if (!session || !current || !currentExercise) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-[var(--color-muted)]">Antrenman bulunamadı.</p>
+        <p className="text-sm text-[var(--color-muted)]">{t('workout.notFound')}</p>
       </div>
     )
   }
@@ -285,7 +294,7 @@ export function WorkoutSessionPage() {
         <button
           onClick={handleExit}
           className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface)]"
-          aria-label="Çık"
+          aria-label={t('workout.exit')}
         >
           <X size={20} />
         </button>
@@ -296,7 +305,7 @@ export function WorkoutSessionPage() {
         <button
           onClick={() => setSwitcherOpen(true)}
           disabled={phase !== 'active'}
-          aria-label="Hareket değiştir"
+          aria-label={t('workout.changeExercise')}
           className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface)] disabled:opacity-40"
         >
           <Menu size={20} />
@@ -305,11 +314,13 @@ export function WorkoutSessionPage() {
 
       <div className="flex flex-1 flex-col items-center px-5 pt-4 text-center">
         <div className="mb-1 text-xs font-medium tracking-wide text-[var(--color-accent)] uppercase">
-          {currentExercise.muscleGroup}
+          {translateMuscleGroup(currentExercise.muscleGroup, language)}
         </div>
         <h1 className="text-2xl font-bold leading-tight">{currentExercise.name}</h1>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
-          {isCardio ? `Hedef: ${formatRest(cardioTarget)}` : `Set ${setIndex + 1} / ${effectiveSets}`}
+          {isCardio
+            ? t('workout.target', { value: formatRest(cardioTarget) })
+            : t('workout.setProgress', { current: setIndex + 1, total: effectiveSets })}
         </p>
 
         {isCardio ? (
@@ -329,7 +340,7 @@ export function WorkoutSessionPage() {
                   animate={{ opacity: 1 }}
                   className="mt-2 flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--color-accent)]"
                 >
-                  <AlarmClock size={16} /> Hedef süre doldu!
+                  <AlarmClock size={16} /> {t('workout.timeUp')}
                 </motion.p>
               )}
             </div>
@@ -340,11 +351,11 @@ export function WorkoutSessionPage() {
               }`}
             >
               {cardioRunning ? <Pause size={20} /> : <Play size={20} />}
-              {cardioRunning ? 'Durdur' : 'Başlat'}
+              {cardioRunning ? t('workout.stop') : t('workout.start')}
             </button>
             {currentExercise.supportsIncline && (
               <NumberStepper
-                label="Eğim (%)"
+                label={t('exerciseCard.incline')}
                 value={inclineValue}
                 min={0}
                 max={15}
@@ -358,8 +369,15 @@ export function WorkoutSessionPage() {
         ) : (
           <>
             <div className="mt-6 flex w-full flex-col gap-4">
-              <NumberStepper label="Tekrar" value={reps} min={0} onChange={setReps} size="lg" />
-              <NumberStepper label="Kilo (kg)" value={weight} min={0} step={weightStep} onChange={setWeight} size="lg" />
+              <NumberStepper label={t('exerciseCard.reps')} value={reps} min={0} onChange={setReps} size="lg" />
+              <NumberStepper
+                label={t('exerciseCard.weight')}
+                value={weight}
+                min={0}
+                step={weightStep}
+                onChange={setWeight}
+                size="lg"
+              />
             </div>
 
             {personalRecord && (
@@ -369,14 +387,14 @@ export function WorkoutSessionPage() {
                   onClick={() => navigate(`/hareket/${current.exerciseId}`)}
                   className="text-left underline-offset-2 hover:underline"
                 >
-                  Kişisel Rekor:{' '}
+                  {t('workout.personalRecord')}:{' '}
                   <span className="font-semibold text-[var(--color-text)]">
-                    {personalRecord.reps} tekrar × {personalRecord.weight} kg
+                    {personalRecord.reps} {t('common.reps')} × {personalRecord.weight} {t('common.kg')}
                   </span>
                 </button>
                 <button
                   onClick={deleteRecord}
-                  aria-label="Rekor kaydını sil"
+                  aria-label={t('workout.deleteRecord')}
                   className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface)]"
                 >
                   <Trash2 size={13} />
@@ -393,7 +411,7 @@ export function WorkoutSessionPage() {
           disabled={phase !== 'active'}
           className="w-full rounded-xl bg-[var(--color-accent)] py-4 text-center text-base font-semibold text-white disabled:opacity-40"
         >
-          {isCardio ? 'Hareketi Bitir' : 'Seti Bitir'}
+          {isCardio ? t('workout.finishExercise') : t('workout.finishSet')}
         </button>
 
         {isCardio ? (
@@ -430,13 +448,13 @@ export function WorkoutSessionPage() {
             </motion.div>
             <h2 className="mt-5 text-2xl font-bold text-[var(--color-gold)]">
               {prType === 'both'
-                ? 'Kilo ve Tekrar Rekoru!'
+                ? t('workout.bothRecordTitle')
                 : prType === 'weight'
-                  ? 'Kişisel Kilo Rekoru!'
-                  : 'Kişisel Tekrar Rekoru!'}
+                  ? t('workout.weightRecordTitle')
+                  : t('workout.repsRecordTitle')}
             </h2>
             <p className="mt-1 text-sm text-[var(--color-muted)]">
-              {currentExercise.name} · {reps} tekrar · {weight} kg
+              {currentExercise.name} · {reps} {t('common.reps')} · {weight} {t('common.kg')}
             </p>
           </motion.div>
         )}
@@ -448,20 +466,20 @@ export function WorkoutSessionPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-[var(--color-bg)]"
           >
-            <p className="text-sm font-medium tracking-wide text-[var(--color-muted)] uppercase">Dinlenme</p>
+            <p className="text-sm font-medium tracking-wide text-[var(--color-muted)] uppercase">{t('workout.resting')}</p>
             <div className="my-6 text-7xl font-bold tabular-nums">
               {restTimer.secondsLeft !== null ? formatRest(restTimer.secondsLeft) : '0:00'}
             </div>
             {restNextLabel && (
               <p className="text-sm text-[var(--color-muted)]">
-                Sıradaki: <span className="text-[var(--color-text)]">{restNextLabel}</span>
+                {t('workout.next')} <span className="text-[var(--color-text)]">{restNextLabel}</span>
               </p>
             )}
             <button
               onClick={restTimer.skip}
               className="mt-10 flex items-center gap-2.5 rounded-full bg-[var(--color-surface)] px-7 py-3.5 text-base font-semibold"
             >
-              <SkipForward size={20} /> Atla
+              <SkipForward size={20} /> {t('workout.skip')}
             </button>
           </motion.div>
         )}
