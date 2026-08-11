@@ -10,6 +10,7 @@ import {
 import type { BodyWeightEntry } from '../../types'
 import { formatDateShort } from '../../utils/format'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 
 interface WeightChartProps {
   entries: BodyWeightEntry[]
@@ -18,6 +19,7 @@ interface WeightChartProps {
 
 export function WeightChart({ entries, goal }: WeightChartProps) {
   const { t, locale } = useLanguage()
+  const { label: unitLabel, toDisplay } = useUnitSystem()
 
   if (entries.length < 2) {
     return (
@@ -27,8 +29,11 @@ export function WeightChart({ entries, goal }: WeightChartProps) {
     )
   }
 
-  const weights = entries.map((e) => e.weight)
-  if (goal) weights.push(goal)
+  const displayEntries = entries.map((e) => ({ ...e, weight: toDisplay(e.weight) }))
+  const displayGoal = goal !== null ? toDisplay(goal) : null
+
+  const weights = displayEntries.map((e) => e.weight)
+  if (displayGoal) weights.push(displayGoal)
   const min = Math.min(...weights)
   const max = Math.max(...weights)
   const pad = Math.max(1, (max - min) * 0.15)
@@ -36,7 +41,7 @@ export function WeightChart({ entries, goal }: WeightChartProps) {
   return (
     <div className="h-56 rounded-2xl bg-[var(--color-surface)] p-3">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={entries} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+        <LineChart data={displayEntries} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
           <XAxis
             dataKey="date"
             tickFormatter={(v) => formatDateShort(v, locale)}
@@ -64,11 +69,11 @@ export function WeightChart({ entries, goal }: WeightChartProps) {
               fontSize: 12,
             }}
             labelFormatter={(v) => formatDateShort(String(v), locale)}
-            formatter={(v) => [`${v} ${t('common.kg')}`, t('weight.tooltipLabel')]}
+            formatter={(v) => [`${v} ${unitLabel}`, t('weight.tooltipLabel')]}
           />
-          {goal && (
+          {displayGoal && (
             <ReferenceLine
-              y={goal}
+              y={displayGoal}
               stroke="var(--color-gold)"
               strokeDasharray="4 4"
               label={{ value: t('weight.goalRefLabel'), position: 'insideTopRight', fill: 'var(--color-gold)', fontSize: 11 }}

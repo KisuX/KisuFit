@@ -13,6 +13,8 @@ export const translations = {
     notFound: { tr: 'Bulunamadı.', en: 'Not found.' },
     set: { tr: 'Set', en: 'Set' },
     kg: { tr: 'kg', en: 'kg' },
+    lb: { tr: 'lb', en: 'lb' },
+    cm: { tr: 'cm', en: 'cm' },
     reps: { tr: 'tekrar', en: 'reps' },
     increase: { tr: 'arttır', en: 'increase' },
     decrease: { tr: 'azalt', en: 'decrease' },
@@ -31,7 +33,7 @@ export const translations = {
     settingsLabel: { tr: 'Ayarlar', en: 'Settings' },
     thisWeekWorkouts: { tr: 'bu hafta antrenman', en: 'workouts this week' },
     currentWeight: { tr: 'güncel kilo', en: 'current weight' },
-    remainingToGoal: { tr: 'hedefe {value} kg kaldı', en: '{value} kg to goal' },
+    remainingToGoal: { tr: 'hedefe {value} {unit} kaldı', en: '{value} {unit} to goal' },
     lastWorkout: { tr: 'Son Antrenman', en: 'Last Workout' },
     seeAllWorkouts: { tr: 'Tüm Antrenmanları Gör', en: 'See All Workouts' },
     weightTrend: { tr: 'Kilo Trendi', en: 'Weight Trend' },
@@ -48,6 +50,9 @@ export const translations = {
       en: 'The trend appears once you add at least 2 entries.',
     },
     latestEntry: { tr: 'son kayıt', en: 'latest' },
+    streakTitle: { tr: 'Antrenman Serisi', en: 'Workout Streak' },
+    streakDays: { tr: '{count} gün üst üste', en: '{count}-day streak' },
+    streakEmpty: { tr: 'Bu hafta henüz antrenman yok', en: 'No workouts yet this week' },
   },
 
   programsList: {
@@ -58,6 +63,11 @@ export const translations = {
       en: "You don't have a program yet.",
     },
     emptyStateHint: { tr: 'Sağ alttaki + ile ilk programını oluştur.', en: 'Use the + button below to create your first program.' },
+    newProgramTitle: { tr: 'Yeni Program', en: 'New Program' },
+    newProgramSubtitle: { tr: 'Nasıl başlamak istersin?', en: 'How do you want to start?' },
+    fromScratch: { tr: 'Sıfırdan Başla', en: 'Start From Scratch' },
+    fromScratchDesc: { tr: 'Hareketleri kendin seç.', en: 'Pick exercises yourself.' },
+    fromTemplate: { tr: 'Hazır Şablondan Başla', en: 'Start From a Template' },
     exercises: { tr: 'hareket', en: 'exercises' },
     neverDone: { tr: 'Henüz yapılmadı', en: 'Never done' },
     newProgram: { tr: 'Yeni program oluştur', en: 'Create new program' },
@@ -89,10 +99,13 @@ export const translations = {
     dragHandle: { tr: 'Sürükleyerek sırasını değiştir', en: 'Drag to reorder' },
     set: { tr: 'Set', en: 'Set' },
     reps: { tr: 'Tekrar', en: 'Reps' },
-    weight: { tr: 'Kilo (kg)', en: 'Weight (kg)' },
+    weight: { tr: 'Kilo', en: 'Weight' },
     rest: { tr: 'Dinlenme', en: 'Rest' },
     duration: { tr: 'Süre', en: 'Duration' },
     incline: { tr: 'Eğim (%)', en: 'Incline (%)' },
+    superset: { tr: 'Süper Set', en: 'Superset' },
+    addToSuperset: { tr: 'Süper sete ekle', en: 'Add to superset' },
+    removeFromSuperset: { tr: 'Süper setten çıkar', en: 'Remove from superset' },
   },
 
   programEditor: {
@@ -181,6 +194,28 @@ export const translations = {
     goalSheetTitle: { tr: 'Hedef Kilo', en: 'Goal Weight' },
     goalSheetSubtitle: { tr: 'Ulaşmak istediğin kiloyu belirle.', en: 'Set the weight you want to reach.' },
     goalPlaceholder: { tr: 'örn. 75', en: 'e.g. 75' },
+    tabWeight: { tr: 'Kilo', en: 'Weight' },
+    tabMeasurements: { tr: 'Ölçüler', en: 'Measurements' },
+  },
+
+  measurements: {
+    title: { tr: 'Vücut Ölçüleri', en: 'Body Measurements' },
+    waist: { tr: 'Bel', en: 'Waist' },
+    chest: { tr: 'Göğüs', en: 'Chest' },
+    arm: { tr: 'Kol', en: 'Arm' },
+    hip: { tr: 'Kalça', en: 'Hip' },
+    thigh: { tr: 'Uyluk', en: 'Thigh' },
+    shoulder: { tr: 'Omuz', en: 'Shoulder' },
+    addMeasurement: { tr: 'Ölçü Ekle', en: 'Add Measurement' },
+    cmPlaceholder: { tr: 'cm', en: 'cm' },
+    history: { tr: 'Geçmiş', en: 'History' },
+    chartEmpty: { tr: 'Grafiği görmek için en az 2 ölçüm ekle.', en: 'Add at least 2 measurements to see the chart.' },
+    emptyState: { tr: 'Bu bölge için henüz ölçüm eklenmedi.', en: 'No measurements added for this area yet.' },
+    deleteConfirm: {
+      tr: 'Bu ölçüm kaydını silmek istediğine emin misin?',
+      en: 'Delete this measurement entry? This cannot be undone.',
+    },
+    deleteEntry: { tr: 'Kaydı sil', en: 'Delete entry' },
   },
 
   settings: {
@@ -227,6 +262,8 @@ export const translations = {
     about: { tr: 'Hakkında', en: 'About' },
     aboutHint: { tr: 'Gizlilik politikası, kullanım koşulları ve sürüm bilgisi', en: 'Privacy policy, terms of use, and version info' },
     importFileError: { tr: 'Dosya okunamadı.', en: 'Could not read file.' },
+    units: { tr: 'Birim', en: 'Units' },
+    unitsHint: { tr: 'Kilo ve ağırlıkların gösterileceği birim.', en: 'The unit used to display weights.' },
   },
 
   profileSwitcher: {
@@ -276,7 +313,7 @@ export const translations = {
     editSet: { tr: 'Seti düzenle', en: 'Edit set' },
     deleteSet: { tr: 'Seti sil', en: 'Delete set' },
     inclineShort: { tr: '%{value} eğim', en: '{value}% incline' },
-    repsWeight: { tr: '{reps} tekrar × {weight} kg', en: '{reps} reps × {weight} kg' },
+    repsWeight: { tr: '{reps} tekrar × {weight} {unit}', en: '{reps} reps × {weight} {unit}' },
   },
 
   exerciseHistory: {
@@ -317,6 +354,19 @@ export const translations = {
     },
     contact: { tr: 'İletişim', en: 'Contact' },
     contactBody: { tr: 'Sorular, hata bildirimleri ve öneriler için Ayarlar > Geri Bildirim’i kullan.', en: 'For questions, bug reports, and suggestions, use Settings > Feedback.' },
+  },
+
+  programTemplates: {
+    title: { tr: 'Şablon Seç', en: 'Choose a Template' },
+    subtitle: { tr: 'Bir şablon seç, program editöründe dilediğin gibi düzenle.', en: 'Pick a template, then tweak it however you like in the editor.' },
+    pushDay: { tr: 'İtme Günü', en: 'Push Day' },
+    pushDayDesc: { tr: 'Göğüs, omuz, triceps', en: 'Chest, shoulders, triceps' },
+    pullDay: { tr: 'Çekme Günü', en: 'Pull Day' },
+    pullDayDesc: { tr: 'Sırt, biceps', en: 'Back, biceps' },
+    legDay: { tr: 'Bacak Günü', en: 'Leg Day' },
+    legDayDesc: { tr: 'Bacak, kalça, baldır', en: 'Legs, glutes, calves' },
+    fullBody: { tr: 'Tüm Vücut', en: 'Full Body' },
+    fullBodyDesc: { tr: 'Tüm ana kas gruplarına tek antrenmanda değin', en: 'Hit every major muscle group in one session' },
   },
 
   feedback: {

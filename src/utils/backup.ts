@@ -1,6 +1,7 @@
 import { db, newId, settingKey } from '../db/db'
 import { EXERCISES } from '../data/exercises'
 import type {
+  BodyMeasurementEntry,
   BodyWeightEntry,
   Exercise,
   Program,
@@ -19,20 +20,30 @@ export interface BackupData {
   workoutSessions: WorkoutSession[]
   setLogs: SetLog[]
   bodyWeightEntries: BodyWeightEntry[]
+  bodyMeasurements?: BodyMeasurementEntry[]
   settings: { name: string; value: string }[]
 }
 
 export async function buildBackup(profileId: string, profileName: string): Promise<BackupData> {
-  const [programs, programExercises, workoutSessions, setLogs, bodyWeightEntries, settingsRows, allExercises] =
-    await Promise.all([
-      db.programs.where('profileId').equals(profileId).toArray(),
-      db.programExercises.where('profileId').equals(profileId).toArray(),
-      db.workoutSessions.where('profileId').equals(profileId).toArray(),
-      db.setLogs.where('profileId').equals(profileId).toArray(),
-      db.bodyWeightEntries.where('profileId').equals(profileId).toArray(),
-      db.settings.where('profileId').equals(profileId).toArray(),
-      db.exercises.toArray(),
-    ])
+  const [
+    programs,
+    programExercises,
+    workoutSessions,
+    setLogs,
+    bodyWeightEntries,
+    bodyMeasurements,
+    settingsRows,
+    allExercises,
+  ] = await Promise.all([
+    db.programs.where('profileId').equals(profileId).toArray(),
+    db.programExercises.where('profileId').equals(profileId).toArray(),
+    db.workoutSessions.where('profileId').equals(profileId).toArray(),
+    db.setLogs.where('profileId').equals(profileId).toArray(),
+    db.bodyWeightEntries.where('profileId').equals(profileId).toArray(),
+    db.bodyMeasurements.where('profileId').equals(profileId).toArray(),
+    db.settings.where('profileId').equals(profileId).toArray(),
+    db.exercises.toArray(),
+  ])
 
   const builtinIds = new Set(EXERCISES.map((e) => e.id))
   const usedExerciseIds = new Set(programExercises.map((pe) => pe.exerciseId))
@@ -48,6 +59,7 @@ export async function buildBackup(profileId: string, profileName: string): Promi
     workoutSessions,
     setLogs,
     bodyWeightEntries,
+    bodyMeasurements,
     settings: settingsRows.map((s) => ({ name: s.key.slice(profileId.length + 1), value: s.value })),
   }
 }
@@ -128,6 +140,9 @@ export async function importBackup(data: BackupData, newProfileName: string): Pr
 
   const newWeightEntries = data.bodyWeightEntries.map((e) => ({ ...e, id: newId(), profileId: newProfileId }))
   if (newWeightEntries.length) await db.bodyWeightEntries.bulkAdd(newWeightEntries)
+
+  const newMeasurements = (data.bodyMeasurements ?? []).map((m) => ({ ...m, id: newId(), profileId: newProfileId }))
+  if (newMeasurements.length) await db.bodyMeasurements.bulkAdd(newMeasurements)
 
   if (data.settings.length) {
     await db.settings.bulkAdd(

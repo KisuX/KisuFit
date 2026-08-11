@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { NumberStepper } from '../../components/common/NumberStepper'
-import { weightStep } from '../../utils/steppers'
 import { formatRest } from '../../utils/format'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 import type { SetLog } from '../../types'
 
 interface EditSetSheetProps {
@@ -15,6 +15,7 @@ interface EditSetSheetProps {
 
 export function EditSetSheet({ log, isCardio, onSave, onClose }: EditSetSheetProps) {
   const { t } = useLanguage()
+  const { label: unitLabel, toDisplay, toKg, step: weightStep } = useUnitSystem()
   const [reps, setReps] = useState(log.reps)
   const [weight, setWeight] = useState(log.weight)
   const [durationSeconds, setDurationSeconds] = useState(log.durationSeconds ?? 0)
@@ -72,11 +73,11 @@ export function EditSetSheet({ log, isCardio, onSave, onClose }: EditSetSheetPro
             <>
               <NumberStepper label={t('exerciseCard.reps')} value={reps} min={0} onChange={setReps} size="lg" />
               <NumberStepper
-                label={t('exerciseCard.weight')}
-                value={weight}
+                label={`${t('exerciseCard.weight')} (${unitLabel})`}
+                value={toDisplay(weight)}
                 min={0}
                 step={weightStep}
-                onChange={setWeight}
+                onChange={(v) => setWeight(toKg(v))}
                 size="lg"
               />
             </>

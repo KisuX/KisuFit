@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { AlertTriangle, Download, Upload, User, ChevronRight, Bell, MessageSquareText, Info, Languages } from 'lucide-react'
+import { AlertTriangle, Download, Upload, User, ChevronRight, Bell, MessageSquareText, Info, Languages, Scale } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { db, deleteProfile, resetProfileData, settingKey } from '../../db/db'
 import { clearActiveProfileId } from '../../db/profile'
@@ -9,6 +9,8 @@ import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../i18n/LanguageContext'
 import type { Language } from '../../i18n/translations'
 import { useNotificationsEnabled } from '../../hooks/useNotificationsEnabled'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
+import type { WeightUnit } from '../../utils/units'
 import { notificationPermission, requestNotificationPermission } from '../../utils/notifications'
 import { buildBackup, downloadBackup, importBackup, parseBackupFile, type BackupData } from '../../utils/backup'
 import { ProfileSwitcherSheet } from './ProfileSwitcherSheet'
@@ -19,6 +21,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const { profileId, profileName, switchProfile } = useProfile()
   const { t, language, setLanguage } = useLanguage()
+  const { unit } = useUnitSystem()
   const notificationsEnabled = useNotificationsEnabled()
   const [resetting, setResetting] = useState(false)
   const [switcherOpen, setSwitcherOpen] = useState(false)
@@ -43,6 +46,10 @@ export function SettingsPage() {
     await deleteProfile(profileId)
     clearActiveProfileId()
     window.location.reload()
+  }
+
+  async function setUnit(next: WeightUnit) {
+    await db.settings.put({ key: settingKey(profileId, 'unitSystem'), profileId, value: next })
   }
 
   async function toggleNotifications() {
@@ -125,6 +132,26 @@ export function SettingsPage() {
                 }`}
               >
                 {lng === 'tr' ? 'Türkçe' : 'English'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-[var(--color-surface)] p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <Scale size={16} /> {t('settings.units')}
+          </div>
+          <p className="mb-3 text-sm text-[var(--color-muted)]">{t('settings.unitsHint')}</p>
+          <div className="flex gap-2">
+            {(['kg', 'lb'] as WeightUnit[]).map((u) => (
+              <button
+                key={u}
+                onClick={() => setUnit(u)}
+                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold ${
+                  unit === u ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-surface-2)] text-[var(--color-text)]'
+                }`}
+              >
+                {u === 'kg' ? t('common.kg') : t('common.lb')}
               </button>
             ))}
           </div>

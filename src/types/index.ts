@@ -51,6 +51,8 @@ export interface ProgramExercise {
   durationSeconds: number
   /** Kardiyo hareketleri için eğim (%). Sadece supportsIncline=true hareketlerde kullanılır. */
   incline: number | null
+  /** true ise bu hareket, programdaki bir sonraki hareketle aralarında dinlenmeden bir süper set oluşturur. */
+  linkedToNext?: boolean
 }
 
 export interface WorkoutSession {
@@ -88,6 +90,19 @@ export interface BodyWeightEntry {
   profileId: string
   date: string // YYYY-MM-DD
   weight: number
+  /** Aynı gün için eklenen birden çok kaydı zaman sırasına göre ayırt etmek için. */
+  createdAt?: number
+}
+
+export type MeasurementType = 'waist' | 'chest' | 'arm' | 'hip' | 'thigh' | 'shoulder'
+
+export interface BodyMeasurementEntry {
+  id: string
+  profileId: string
+  type: MeasurementType
+  date: string // YYYY-MM-DD
+  value: number // cm
+  createdAt: number
 }
 
 export interface Settings {

@@ -7,6 +7,7 @@ import { db } from '../../db/db'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import { useAllExercises } from '../../hooks/useAllExercises'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 import { getPersonalRecord } from '../../utils/workout'
 import { formatRest } from '../../utils/format'
 import { ExerciseProgressChart } from './ExerciseProgressChart'
@@ -15,6 +16,7 @@ export function ExerciseHistoryPage() {
   const { exerciseId } = useParams<{ exerciseId: string }>()
   const { profileId } = useProfile()
   const { t, language, locale } = useLanguage()
+  const { label: unitLabel, toDisplay } = useUnitSystem()
   const allExercises = useAllExercises()
   const exercise = allExercises.find((e) => e.id === exerciseId)
   const isCardio = exercise?.muscleGroup === 'Kardiyo'
@@ -35,12 +37,12 @@ export function ExerciseHistoryPage() {
     const byDate = new Map<string, number>()
     for (const log of data.logs) {
       const dateStr = new Date(log.completedAt).toISOString().slice(0, 10)
-      const value = isCardio ? (log.durationSeconds ?? 0) : log.weight
+      const value = isCardio ? (log.durationSeconds ?? 0) : toDisplay(log.weight)
       const prev = byDate.get(dateStr)
       if (prev === undefined || value > prev) byDate.set(dateStr, value)
     }
     return [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value }))
-  }, [data, isCardio])
+  }, [data, isCardio, toDisplay])
 
   if (!data) return null
 
@@ -63,7 +65,7 @@ export function ExerciseHistoryPage() {
             <div>
               <div className="text-xs text-[var(--color-muted)]">{t('exerciseHistory.personalRecord')}</div>
               <div className="text-sm font-semibold">
-                {data.record.reps} {t('common.reps')} × {data.record.weight} {t('common.kg')}
+                {data.record.reps} {t('common.reps')} × {toDisplay(data.record.weight)} {unitLabel}
               </div>
             </div>
           </div>
@@ -71,7 +73,7 @@ export function ExerciseHistoryPage() {
 
         <ExerciseProgressChart
           points={points}
-          unit={isCardio ? (language === 'en' ? 's' : 'sn') : t('common.kg')}
+          unit={isCardio ? (language === 'en' ? 's' : 'sn') : unitLabel}
           emptyLabel={t('exerciseHistory.chartEmpty')}
         />
 
@@ -89,7 +91,7 @@ export function ExerciseHistoryPage() {
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">
-                      {isCardio ? formatRest(log.durationSeconds ?? 0) : `${log.reps} × ${log.weight} ${t('common.kg')}`}
+                      {isCardio ? formatRest(log.durationSeconds ?? 0) : `${log.reps} × ${toDisplay(log.weight)} ${unitLabel}`}
                     </span>
                     {log.isPR && <Trophy size={14} className="text-[var(--color-gold)]" />}
                   </div>

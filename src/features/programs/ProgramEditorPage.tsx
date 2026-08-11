@@ -16,9 +16,10 @@ interface SortableExerciseCardProps {
   config: ExerciseConfig
   onChange: (config: ExerciseConfig) => void
   onRemove: () => void
+  isLast: boolean
 }
 
-function SortableExerciseCard({ exercise, config, onChange, onRemove }: SortableExerciseCardProps) {
+function SortableExerciseCard({ exercise, config, onChange, onRemove, isLast }: SortableExerciseCardProps) {
   const dragControls = useDragControls()
   return (
     <Reorder.Item value={config} dragListener={false} dragControls={dragControls} as="div">
@@ -28,6 +29,7 @@ function SortableExerciseCard({ exercise, config, onChange, onRemove }: Sortable
         onChange={onChange}
         onRemove={onRemove}
         onDragHandlePointerDown={(e) => dragControls.start(e)}
+        isLast={isLast}
       />
     </Reorder.Item>
   )
@@ -60,6 +62,18 @@ export function ProgramEditorPage() {
     setConfigs((prev) => prev.filter((c) => c.exerciseId !== exerciseId))
   }
 
+  /** Sürükle-bırak sırasında bir eşleşmenin komşusu değiştiyse, artık anlamsızlaşan süper set bağını temizler. */
+  function handleReorder(next: ExerciseConfig[]) {
+    const oldNextId = new Map(configs.map((c, i) => [c.exerciseId, configs[i + 1]?.exerciseId]))
+    setConfigs(
+      next.map((c, i) => {
+        if (!c.linkedToNext) return c
+        const newNextId = next[i + 1]?.exerciseId
+        return newNextId === oldNextId.get(c.exerciseId) ? c : { ...c, linkedToNext: false }
+      }),
+    )
+  }
+
   function addExercises() {
     const editorContext: EditorContext = { programId, name, configs }
     navigate('/programlar/hareketler', { state: { editorContext } })
@@ -90,6 +104,7 @@ export function ProgramEditorPage() {
         restSeconds: c.restSeconds,
         durationSeconds: c.durationSeconds,
         incline: c.incline,
+        linkedToNext: c.linkedToNext ?? false,
       })),
     )
     navigate(`/programlar/${id}`, { replace: true })
@@ -109,8 +124,8 @@ export function ProgramEditorPage() {
       </div>
 
       <div className="mt-4 flex flex-1 flex-col px-4 pb-28">
-        <Reorder.Group as="div" axis="y" values={configs} onReorder={setConfigs} className="flex flex-col gap-3">
-          {configs.map((config) => {
+        <Reorder.Group as="div" axis="y" values={configs} onReorder={handleReorder} className="flex flex-col gap-3">
+          {configs.map((config, i) => {
             const exercise = allExercises.find((e) => e.id === config.exerciseId)
             if (!exercise) return null
             return (
@@ -120,6 +135,7 @@ export function ProgramEditorPage() {
                 config={config}
                 onChange={(c) => updateConfig(config.exerciseId, c)}
                 onRemove={() => removeConfig(config.exerciseId)}
+                isLast={i === configs.length - 1}
               />
             )
           })}

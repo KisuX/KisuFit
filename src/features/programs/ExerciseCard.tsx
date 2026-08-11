@@ -1,9 +1,9 @@
 import type { PointerEvent } from 'react'
-import { GripVertical, X } from 'lucide-react'
+import { GripVertical, X, Link2 } from 'lucide-react'
 import { NumberStepper } from '../../components/common/NumberStepper'
 import { formatRest } from '../../utils/format'
-import { weightStep } from '../../utils/steppers'
 import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 import type { Exercise } from '../../types'
 
 export interface ExerciseConfig {
@@ -14,6 +14,7 @@ export interface ExerciseConfig {
   restSeconds: number
   durationSeconds: number
   incline: number | null
+  linkedToNext?: boolean
 }
 
 interface ExerciseCardProps {
@@ -22,10 +23,12 @@ interface ExerciseCardProps {
   onChange: (config: ExerciseConfig) => void
   onRemove: () => void
   onDragHandlePointerDown?: (event: PointerEvent) => void
+  isLast?: boolean
 }
 
-export function ExerciseCard({ exercise, config, onChange, onRemove, onDragHandlePointerDown }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, config, onChange, onRemove, onDragHandlePointerDown, isLast }: ExerciseCardProps) {
   const { t, language } = useLanguage()
+  const { label: unitLabel, toDisplay, toKg, step: weightStep } = useUnitSystem()
   const isCardio = exercise.muscleGroup === 'Kardiyo'
 
   return (
@@ -91,11 +94,11 @@ export function ExerciseCard({ exercise, config, onChange, onRemove, onDragHandl
             onChange={(v) => onChange({ ...config, reps: v })}
           />
           <NumberStepper
-            label={t('exerciseCard.weight')}
-            value={config.weight}
+            label={`${t('exerciseCard.weight')} (${unitLabel})`}
+            value={toDisplay(config.weight)}
             min={0}
             step={weightStep}
-            onChange={(v) => onChange({ ...config, weight: v })}
+            onChange={(v) => onChange({ ...config, weight: toKg(v) })}
           />
           <NumberStepper
             label={t('exerciseCard.rest')}
@@ -106,6 +109,20 @@ export function ExerciseCard({ exercise, config, onChange, onRemove, onDragHandl
             onChange={(v) => onChange({ ...config, restSeconds: v })}
           />
         </div>
+      )}
+
+      {!isLast && (
+        <button
+          type="button"
+          onClick={() => onChange({ ...config, linkedToNext: !config.linkedToNext })}
+          className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold ${
+            config.linkedToNext
+              ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+              : 'bg-[var(--color-surface-2)] text-[var(--color-muted)]'
+          }`}
+        >
+          <Link2 size={13} /> {config.linkedToNext ? t('exerciseCard.removeFromSuperset') : t('exerciseCard.addToSuperset')}
+        </button>
       )}
     </div>
   )

@@ -8,6 +8,7 @@ import { db } from '../../db/db'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import { useAllExercises } from '../../hooks/useAllExercises'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 import { formatDateLong, formatRest } from '../../utils/format'
 import { EditSetSheet } from './EditSetSheet'
 import type { SetLog } from '../../types'
@@ -17,6 +18,7 @@ export function WorkoutSessionDetailPage() {
   const navigate = useNavigate()
   const { profileId } = useProfile()
   const { t, language, locale } = useLanguage()
+  const { label: unitLabel, toDisplay } = useUnitSystem()
   const allExercises = useAllExercises()
   const [editingLog, setEditingLog] = useState<SetLog | null>(null)
 
@@ -105,7 +107,7 @@ export function WorkoutSessionDetailPage() {
                       <span className="font-semibold">
                         {isCardio
                           ? `${formatRest(log.durationSeconds ?? 0)}${log.incline !== null ? ` · ${t('history.inclineShort', { value: log.incline })}` : ''}`
-                          : t('history.repsWeight', { reps: log.reps, weight: log.weight })}
+                          : t('history.repsWeight', { reps: log.reps, weight: toDisplay(log.weight), unit: unitLabel })}
                       </span>
                       {log.isPR && <Trophy size={14} className="text-[var(--color-gold)]" />}
                     </div>

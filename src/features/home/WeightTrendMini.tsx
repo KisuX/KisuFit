@@ -1,5 +1,6 @@
 import type { BodyWeightEntry } from '../../types'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 
 interface WeightTrendMiniProps {
   entries: BodyWeightEntry[]
@@ -7,6 +8,7 @@ interface WeightTrendMiniProps {
 
 export function WeightTrendMini({ entries }: WeightTrendMiniProps) {
   const { t } = useLanguage()
+  const { label: unitLabel, toDisplay } = useUnitSystem()
   const recent = entries.slice(-10)
   if (recent.length < 2) {
     return <p className="text-sm text-[var(--color-muted)]">{t('home.trendEmpty')}</p>
@@ -32,7 +34,9 @@ export function WeightTrendMini({ entries }: WeightTrendMiniProps) {
         <polyline points={points} fill="none" stroke="var(--color-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div className="text-right">
-        <div className="text-lg font-bold">{recent[recent.length - 1].weight} kg</div>
+        <div className="text-lg font-bold">
+          {toDisplay(recent[recent.length - 1].weight)} {unitLabel}
+        </div>
         <div className="text-xs text-[var(--color-muted)]">{t('home.latestEntry')}</div>
       </div>
     </div>

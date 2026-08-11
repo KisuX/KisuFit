@@ -4,11 +4,12 @@ import { useLanguage } from '../../i18n/LanguageContext'
 
 interface GoalWeightSheetProps {
   initialValue: number | null
+  unitLabel: string
   onSave: (value: number) => void
   onClose: () => void
 }
 
-export function GoalWeightSheet({ initialValue, onSave, onClose }: GoalWeightSheetProps) {
+export function GoalWeightSheet({ initialValue, unitLabel, onSave, onClose }: GoalWeightSheetProps) {
   const { t } = useLanguage()
   const [value, setValue] = useState(initialValue ? String(initialValue) : '')
 
@@ -31,14 +32,19 @@ export function GoalWeightSheet({ initialValue, onSave, onClose }: GoalWeightShe
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--color-border)]" />
         <h2 className="mb-1 text-lg font-semibold">{t('weight.goalSheetTitle')}</h2>
         <p className="mb-4 text-sm text-[var(--color-muted)]">{t('weight.goalSheetSubtitle')}</p>
-        <input
-          autoFocus
-          inputMode="decimal"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={t('weight.goalPlaceholder')}
-          className="w-full rounded-xl bg-[var(--color-surface-2)] px-4 py-3 text-lg font-semibold outline-none placeholder:text-[var(--color-muted)] focus:ring-1 focus:ring-[var(--color-accent)]"
-        />
+        <div className="relative">
+          <input
+            autoFocus
+            inputMode="decimal"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={t('weight.goalPlaceholder')}
+            className="w-full rounded-xl bg-[var(--color-surface-2)] px-4 py-3 pr-12 text-lg font-semibold outline-none placeholder:text-[var(--color-muted)] focus:ring-1 focus:ring-[var(--color-accent)]"
+          />
+          <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-[var(--color-muted)]">
+            {unitLabel}
+          </span>
+        </div>
         <div className="mt-5 flex gap-3">
           <button
             onClick={onClose}

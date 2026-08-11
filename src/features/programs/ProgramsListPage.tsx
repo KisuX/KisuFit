@@ -1,16 +1,41 @@
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Dumbbell, ChevronRight } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../../db/db'
 import { Fab } from '../../components/common/Fab'
 import { formatDateLong } from '../../utils/format'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { NewProgramChooserSheet } from './NewProgramChooserSheet'
+import { TemplatePickerSheet } from './TemplatePickerSheet'
+import type { ResolvedTemplate } from '../../data/programTemplates'
+import type { EditorContext } from './editorContext'
 
 export function ProgramsListPage() {
   const navigate = useNavigate()
   const { profileId } = useProfile()
   const { t, locale } = useLanguage()
+  const [chooserOpen, setChooserOpen] = useState(false)
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
+
+  function selectTemplate(template: ResolvedTemplate) {
+    const editorContext: EditorContext = {
+      name: t(template.titleKey),
+      configs: template.exercises.map((e) => ({
+        exerciseId: e.exerciseId,
+        sets: e.sets,
+        reps: e.reps,
+        weight: e.weight,
+        restSeconds: e.restSeconds,
+        durationSeconds: 0,
+        incline: null,
+      })),
+    }
+    setTemplatePickerOpen(false)
+    navigate('/programlar/editor', { state: { editorContext } })
+  }
 
   const programs = useLiveQuery(async () => {
     const all = await db.programs.where('profileId').equals(profileId).sortBy('createdAt')
@@ -66,11 +91,29 @@ export function ProgramsListPage() {
         ))}
       </div>
 
-      <Fab
-        onClick={() => navigate('/programlar/hareketler')}
-        icon={<Plus size={26} />}
-        aria-label={t('programsList.newProgram')}
-      />
+      <Fab onClick={() => setChooserOpen(true)} icon={<Plus size={26} />} aria-label={t('programsList.newProgram')} />
+
+      <AnimatePresence>
+        {chooserOpen && (
+          <NewProgramChooserSheet
+            onClose={() => setChooserOpen(false)}
+            onScratch={() => {
+              setChooserOpen(false)
+              navigate('/programlar/hareketler')
+            }}
+            onTemplate={() => {
+              setChooserOpen(false)
+              setTemplatePickerOpen(true)
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {templatePickerOpen && (
+          <TemplatePickerSheet onClose={() => setTemplatePickerOpen(false)} onSelect={selectTemplate} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

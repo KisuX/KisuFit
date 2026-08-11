@@ -7,12 +7,14 @@ import { computeSessionStats } from '../../utils/workout'
 import { formatDuration } from '../../utils/format'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 
 export function WorkoutSummaryPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
   const { profileId } = useProfile()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
+  const { label: unitLabel, toDisplay } = useUnitSystem()
 
   const data = useLiveQuery(async () => {
     if (!sessionId) return null
@@ -44,12 +46,16 @@ export function WorkoutSummaryPage() {
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-3">
-        <StatCard icon={<Clock size={18} />} label={t('workoutSummary.duration')} value={formatDuration(stats.durationSec)} />
+        <StatCard
+          icon={<Clock size={18} />}
+          label={t('workoutSummary.duration')}
+          value={formatDuration(stats.durationSec, locale)}
+        />
         <StatCard icon={<Layers size={18} />} label={t('workoutSummary.totalSets')} value={String(stats.totalSets)} />
         <StatCard
           icon={<TrendingUp size={18} />}
           label={t('workoutSummary.totalVolume')}
-          value={`${stats.totalVolume} ${t('common.kg')}`}
+          value={`${toDisplay(stats.totalVolume)} ${unitLabel}`}
         />
         <StatCard
           icon={<Trophy size={18} />}

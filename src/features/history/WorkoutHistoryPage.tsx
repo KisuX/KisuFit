@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { db } from '../../db/db'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 import { computeSessionStats } from '../../utils/workout'
 import { formatDateLong, formatDuration } from '../../utils/format'
 
@@ -12,6 +13,7 @@ export function WorkoutHistoryPage() {
   const navigate = useNavigate()
   const { profileId } = useProfile()
   const { t, locale } = useLanguage()
+  const { label: unitLabel, toDisplay } = useUnitSystem()
 
   const sessions = useLiveQuery(async () => {
     const finished = await db.workoutSessions
@@ -60,13 +62,13 @@ export function WorkoutHistoryPage() {
             </div>
             <div className="flex gap-4 text-xs text-[var(--color-muted)]">
               <span className="flex items-center gap-1">
-                <Clock size={14} /> {formatDuration(stats.durationSec)}
+                <Clock size={14} /> {formatDuration(stats.durationSec, locale)}
               </span>
               <span className="flex items-center gap-1">
                 <Layers size={14} /> {stats.totalSets} {t('common.set')}
               </span>
               <span className="flex items-center gap-1">
-                <TrendingUp size={14} /> {stats.totalVolume} {t('common.kg')}
+                <TrendingUp size={14} /> {toDisplay(stats.totalVolume)} {unitLabel}
               </span>
             </div>
           </button>

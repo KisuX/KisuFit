@@ -9,13 +9,14 @@ import { useAllExercises } from '../../hooks/useAllExercises'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage, translateMuscleGroup } from '../../i18n/LanguageContext'
 import { NumberStepper } from '../../components/common/NumberStepper'
-import { weightStep } from '../../utils/steppers'
 import { ExerciseSwitcherSheet } from './ExerciseSwitcherSheet'
 import { useRestTimer } from '../../hooks/useRestTimer'
 import { useNotificationsEnabled } from '../../hooks/useNotificationsEnabled'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 import { getLastSetPerformance, evaluatePersonalRecord, getPersonalRecord, type PersonalRecord } from '../../utils/workout'
 import { formatRest } from '../../utils/format'
 import { notify } from '../../utils/notifications'
+import { playChime, primeAudio } from '../../utils/sound'
 import type { Exercise, PRType, ProgramExercise } from '../../types'
 
 type Phase = 'active' | 'celebrating' | 'resting'
@@ -41,6 +42,15 @@ function findNextIncompleteIndex(
   return null
 }
 
+/** idx'in içinde bulunduğu süper set grubunun [start, end] aralığını (programExercises index'i) döner. */
+function groupRange(idx: number, list: ProgramExercise[]): { start: number; end: number } {
+  let start = idx
+  while (start > 0 && list[start - 1].linkedToNext) start--
+  let end = idx
+  while (end < list.length - 1 && list[end].linkedToNext) end++
+  return { start, end }
+}
+
 export function WorkoutSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
@@ -48,6 +58,7 @@ export function WorkoutSessionPage() {
   const { profileId } = useProfile()
   const { t, language } = useLanguage()
   const notificationsEnabled = useNotificationsEnabled()
+  const { label: unitLabel, toDisplay, toKg, step: weightStep } = useUnitSystem()
 
   const session = useLiveQuery(async () => {
     if (!sessionId) return undefined
@@ -74,6 +85,8 @@ export function WorkoutSessionPage() {
   const [restNextLabel, setRestNextLabel] = useState('')
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const timeUpAlerted = useRef(false)
+  const cardioAccumulatedRef = useRef(0)
+  const cardioRunStartRef = useRef<number | null>(null)
 
   const current = programExercises?.[exerciseIndex]
   const currentExercise = current ? allExercises.find((e) => e.id === current.exerciseId) : undefined
@@ -97,24 +110,57 @@ export function WorkoutSessionPage() {
     setExerciseIndex(nextIdx)
   }
 
-  const restTimer = useRestTimer(() => {
-    if (notificationsEnabled) notify(t('workout.restDoneNotification'), restNextLabel || undefined)
+  const restTimer = useRestTimer((wasSkipped) => {
+    if (!wasSkipped) {
+      playChime()
+      if ('vibrate' in navigator) navigator.vibrate(200)
+      if (notificationsEnabled) notify(t('workout.restDoneNotification'), restNextLabel || undefined)
+    }
     advance()
   })
 
-  // elapsed session timer
+  // elapsed session timer - Date.now() farkından hesaplanır, sekme arkaplandan dönünce anında güncellenir
   useEffect(() => {
     if (!session) return
-    const t = setInterval(() => setElapsed(Math.floor((Date.now() - session.startedAt) / 1000)), 1000)
-    return () => clearInterval(t)
+    const sync = () => setElapsed(Math.floor((Date.now() - session.startedAt) / 1000))
+    const t = setInterval(sync, 1000)
+    document.addEventListener('visibilitychange', sync)
+    return () => {
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', sync)
+    }
   }, [session])
 
-  // cardio stopwatch ticker
+  // cardio kronometresi: biriken süre + (çalışıyorsa) o anki segmentin başlangıcından geçen gerçek süre.
+  // Sekme arkaplandayken setInterval yavaşlatılsa bile, geri dönüldüğünde doğru değer anında hesaplanır.
+  function syncCardio() {
+    const runElapsed = cardioRunStartRef.current !== null ? Math.floor((Date.now() - cardioRunStartRef.current) / 1000) : 0
+    setCardioSeconds(cardioAccumulatedRef.current + runElapsed)
+  }
+
   useEffect(() => {
     if (!cardioRunning) return
-    const t = setInterval(() => setCardioSeconds((s) => s + 1), 1000)
-    return () => clearInterval(t)
+    const t = setInterval(syncCardio, 1000)
+    document.addEventListener('visibilitychange', syncCardio)
+    return () => {
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', syncCardio)
+    }
   }, [cardioRunning])
+
+  function toggleCardioRunning() {
+    primeAudio()
+    if (cardioRunning) {
+      if (cardioRunStartRef.current !== null) {
+        cardioAccumulatedRef.current += Math.floor((Date.now() - cardioRunStartRef.current) / 1000)
+      }
+      cardioRunStartRef.current = null
+      syncCardio()
+    } else {
+      cardioRunStartRef.current = Date.now()
+    }
+    setCardioRunning((r) => !r)
+  }
 
   // hedef kardiyo süresine ulaşılınca bir kere uyar, sonra fazladan geçen süreyi saymaya devam et
   useEffect(() => {
@@ -122,6 +168,7 @@ export function WorkoutSessionPage() {
     if (cardioSeconds >= cardioTarget && !timeUpAlerted.current) {
       timeUpAlerted.current = true
       setTimeUpFlash(true)
+      playChime()
       if ('vibrate' in navigator) navigator.vibrate(200)
       if (notificationsEnabled) notify(t('workout.cardioTargetNotification'), currentExercise?.name)
       setTimeout(() => setTimeUpFlash(false), 2500)
@@ -134,6 +181,8 @@ export function WorkoutSessionPage() {
     let cancelled = false
 
     if (isCardio) {
+      cardioAccumulatedRef.current = 0
+      cardioRunStartRef.current = null
       setCardioSeconds(0)
       setCardioRunning(false)
       setInclineValue(0)
@@ -167,11 +216,16 @@ export function WorkoutSessionPage() {
 
   async function finishSet() {
     if (!current || !currentExercise || !sessionId || !programExercises) return
+    primeAudio()
 
     let isPR = false
     let type: PRType = null
 
     if (isCardio) {
+      const finalCardioSeconds =
+        cardioRunStartRef.current !== null
+          ? cardioAccumulatedRef.current + Math.floor((Date.now() - cardioRunStartRef.current) / 1000)
+          : cardioSeconds
       setCardioRunning(false)
       await db.setLogs.add({
         id: newId(),
@@ -184,7 +238,7 @@ export function WorkoutSessionPage() {
         weight: 0,
         isPR: false,
         prType: null,
-        durationSeconds: cardioSeconds,
+        durationSeconds: finalCardioSeconds,
         incline: currentExercise.supportsIncline ? inclineValue : null,
         completedAt: Date.now(),
       })
@@ -212,19 +266,68 @@ export function WorkoutSessionPage() {
     const newCompleted = { ...completedSets, [current.id]: (completedSets[current.id] ?? 0) + 1 }
     setCompletedSets(newCompleted)
 
+    const { start: groupStart, end: groupEnd } = groupRange(exerciseIndex, programExercises)
+    const isGrouped = groupEnd > groupStart
+
+    function memberHasRemaining(k: number) {
+      const pe = programExercises![k]
+      const ex = allExercises.find((e) => e.id === pe.exerciseId)
+      return (newCompleted[pe.id] ?? 0) < exerciseSets(pe, ex)
+    }
+
     const doneCount = newCompleted[current.id] ?? 0
     const willMoveOn = doneCount >= effectiveSets
-    const nextIdx = willMoveOn ? findNextIncompleteIndex(exerciseIndex, programExercises, newCompleted, allExercises) : null
-    const allDone = willMoveOn && nextIdx === null
-    const upcomingExercise = willMoveOn
-      ? nextIdx !== null
-        ? allExercises.find((e) => e.id === programExercises[nextIdx].exerciseId)
-        : undefined
-      : currentExercise
-    // kardiyo hareketlerinin öncesinde ve sonrasında dinlenme yok
-    const skipRest = isCardio || upcomingExercise?.muscleGroup === 'Kardiyo'
 
     const proceed = () => {
+      if (isGrouped) {
+        // önce grubun bu turdaki bir sonraki üyesine bak (aralarında dinlenme yok), yoksa baştan sarıp eksik kalan üyeyi bul
+        let groupNextIdx: number | null = null
+        for (let k = exerciseIndex + 1; k <= groupEnd; k++) {
+          if (memberHasRemaining(k)) {
+            groupNextIdx = k
+            break
+          }
+        }
+        if (groupNextIdx === null) {
+          for (let k = groupStart; k <= exerciseIndex; k++) {
+            if (memberHasRemaining(k)) {
+              groupNextIdx = k
+              break
+            }
+          }
+        }
+        if (groupNextIdx !== null) {
+          setPhase('active')
+          setExerciseIndex(groupNextIdx)
+          return
+        }
+        // grubun tamamı bitti: programdaki sıradaki harekete normal akışla geç (gerekiyorsa dinlenerek)
+        const outerNextIdx = findNextIncompleteIndex(exerciseIndex, programExercises, newCompleted, allExercises)
+        if (outerNextIdx === null) {
+          finishWorkout()
+          return
+        }
+        const upcoming = allExercises.find((e) => e.id === programExercises![outerNextIdx].exerciseId)
+        if (isCardio || upcoming?.muscleGroup === 'Kardiyo') {
+          advance(newCompleted)
+        } else {
+          setRestNextLabel(upcoming?.name ?? '')
+          setPhase('resting')
+          restTimer.start(current!.restSeconds)
+        }
+        return
+      }
+
+      const nextIdx = willMoveOn ? findNextIncompleteIndex(exerciseIndex, programExercises, newCompleted, allExercises) : null
+      const allDone = willMoveOn && nextIdx === null
+      const upcomingExercise = willMoveOn
+        ? nextIdx !== null
+          ? allExercises.find((e) => e.id === programExercises![nextIdx].exerciseId)
+          : undefined
+        : currentExercise
+      // kardiyo hareketlerinin öncesinde ve sonrasında dinlenme yok
+      const skipRest = isCardio || upcomingExercise?.muscleGroup === 'Kardiyo'
+
       if (allDone) {
         finishWorkout()
       } else if (skipRest) {
@@ -232,7 +335,7 @@ export function WorkoutSessionPage() {
       } else {
         setRestNextLabel(willMoveOn ? (upcomingExercise?.name ?? '') : t('workout.nextSet', { n: doneCount + 1 }))
         setPhase('resting')
-        restTimer.start(current.restSeconds)
+        restTimer.start(current!.restSeconds)
       }
     }
 
@@ -345,7 +448,7 @@ export function WorkoutSessionPage() {
               )}
             </div>
             <button
-              onClick={() => setCardioRunning((r) => !r)}
+              onClick={toggleCardioRunning}
               className={`flex items-center gap-2 rounded-full px-8 py-3.5 text-base font-semibold ${
                 cardioRunning ? 'bg-[var(--color-surface-2)] text-[var(--color-text)]' : 'bg-[var(--color-accent)] text-white'
               }`}
@@ -371,11 +474,11 @@ export function WorkoutSessionPage() {
             <div className="mt-6 flex w-full flex-col gap-4">
               <NumberStepper label={t('exerciseCard.reps')} value={reps} min={0} onChange={setReps} size="lg" />
               <NumberStepper
-                label={t('exerciseCard.weight')}
-                value={weight}
+                label={`${t('exerciseCard.weight')} (${unitLabel})`}
+                value={toDisplay(weight)}
                 min={0}
                 step={weightStep}
-                onChange={setWeight}
+                onChange={(v) => setWeight(toKg(v))}
                 size="lg"
               />
             </div>
@@ -389,7 +492,7 @@ export function WorkoutSessionPage() {
                 >
                   {t('workout.personalRecord')}:{' '}
                   <span className="font-semibold text-[var(--color-text)]">
-                    {personalRecord.reps} {t('common.reps')} × {personalRecord.weight} {t('common.kg')}
+                    {personalRecord.reps} {t('common.reps')} × {toDisplay(personalRecord.weight)} {unitLabel}
                   </span>
                 </button>
                 <button
@@ -454,7 +557,7 @@ export function WorkoutSessionPage() {
                   : t('workout.repsRecordTitle')}
             </h2>
             <p className="mt-1 text-sm text-[var(--color-muted)]">
-              {currentExercise.name} · {reps} {t('common.reps')} · {weight} {t('common.kg')}
+              {currentExercise.name} · {reps} {t('common.reps')} · {toDisplay(weight)} {unitLabel}
             </p>
           </motion.div>
         )}

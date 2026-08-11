@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type {
+  BodyMeasurementEntry,
   BodyWeightEntry,
   Exercise,
   Profile,
@@ -21,6 +22,7 @@ export const db = new Dexie('kisufit') as Dexie & {
   workoutSessions: EntityTable<WorkoutSession, 'id'>
   setLogs: EntityTable<SetLog, 'id'>
   bodyWeightEntries: EntityTable<BodyWeightEntry, 'id'>
+  bodyMeasurements: EntityTable<BodyMeasurementEntry, 'id'>
   settings: EntityTable<Settings, 'key'>
 }
 
@@ -70,6 +72,11 @@ db.version(2)
     localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, defaultProfileId)
   })
 
+// v3: vücut ölçüleri (bel, göğüs, kol vb.) için yeni tablo.
+db.version(3).stores({
+  bodyMeasurements: 'id, profileId, type, date',
+})
+
 export async function ensureSeeded() {
   // bulkPut (not bulkAdd) so concurrent calls (e.g. React StrictMode's
   // double-invoked effects in dev) can't collide on duplicate primary keys.
@@ -88,13 +95,22 @@ export function settingKey(profileId: string, name: string) {
 export async function resetProfileData(profileId: string) {
   await db.transaction(
     'rw',
-    [db.programs, db.programExercises, db.workoutSessions, db.setLogs, db.bodyWeightEntries, db.settings],
+    [
+      db.programs,
+      db.programExercises,
+      db.workoutSessions,
+      db.setLogs,
+      db.bodyWeightEntries,
+      db.bodyMeasurements,
+      db.settings,
+    ],
     async () => {
       await db.programs.where('profileId').equals(profileId).delete()
       await db.programExercises.where('profileId').equals(profileId).delete()
       await db.workoutSessions.where('profileId').equals(profileId).delete()
       await db.setLogs.where('profileId').equals(profileId).delete()
       await db.bodyWeightEntries.where('profileId').equals(profileId).delete()
+      await db.bodyMeasurements.where('profileId').equals(profileId).delete()
       await db.settings.where('profileId').equals(profileId).delete()
     },
   )
