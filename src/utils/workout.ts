@@ -7,10 +7,15 @@ export interface SuggestedSet {
 
 /** En son bu set numarasında bu hareket için yapılan performansı döner (varsa). */
 export async function getLastSetPerformance(
+  profileId: string,
   exerciseId: string,
   setNumber: number,
 ): Promise<SuggestedSet | null> {
-  const logs = await db.setLogs.where('exerciseId').equals(exerciseId).toArray()
+  const logs = await db.setLogs
+    .where('exerciseId')
+    .equals(exerciseId)
+    .and((l) => l.profileId === profileId)
+    .toArray()
   const matching = logs.filter((l) => l.setNumber === setNumber)
   if (matching.length === 0) return null
   matching.sort((a, b) => b.completedAt - a.completedAt)
@@ -28,11 +33,16 @@ export interface PrResult {
  * İlk kayıt için (geçmiş yoksa) rekor sayılmaz, sadece taban oluşturur.
  */
 export async function evaluatePersonalRecord(
+  profileId: string,
   exerciseId: string,
   weight: number,
   reps: number,
 ): Promise<PrResult> {
-  const logs = await db.setLogs.where('exerciseId').equals(exerciseId).toArray()
+  const logs = await db.setLogs
+    .where('exerciseId')
+    .equals(exerciseId)
+    .and((l) => l.profileId === profileId)
+    .toArray()
   if (logs.length === 0) return { isWeightPR: false, isRepPR: false }
 
   const maxWeight = Math.max(...logs.map((l) => l.weight))
@@ -51,8 +61,12 @@ export interface PersonalRecord {
 }
 
 /** Bu hareket için o ana kadarki en iyi set (en yüksek ağırlık, eşitlikte en yüksek tekrar). */
-export async function getPersonalRecord(exerciseId: string): Promise<PersonalRecord | null> {
-  const logs = await db.setLogs.where('exerciseId').equals(exerciseId).toArray()
+export async function getPersonalRecord(profileId: string, exerciseId: string): Promise<PersonalRecord | null> {
+  const logs = await db.setLogs
+    .where('exerciseId')
+    .equals(exerciseId)
+    .and((l) => l.profileId === profileId)
+    .toArray()
   if (logs.length === 0) return null
   let best = logs[0]
   for (const l of logs) {

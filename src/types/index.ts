@@ -23,8 +23,15 @@ export interface Exercise {
   supportsIncline?: boolean
 }
 
+export interface Profile {
+  id: string
+  name: string
+  createdAt: number
+}
+
 export interface Program {
   id: string
+  profileId: string
   name: string
   createdAt: number
   updatedAt: number
@@ -32,6 +39,7 @@ export interface Program {
 
 export interface ProgramExercise {
   id: string
+  profileId: string
   programId: string
   exerciseId: string
   order: number
@@ -47,6 +55,7 @@ export interface ProgramExercise {
 
 export interface WorkoutSession {
   id: string
+  profileId: string
   programId: string
   programName: string
   startedAt: number
@@ -58,6 +67,7 @@ export type PRType = 'weight' | 'reps' | 'both' | null
 
 export interface SetLog {
   id: string
+  profileId: string
   sessionId: string
   exerciseId: string
   exerciseName: string
@@ -75,11 +85,14 @@ export interface SetLog {
 
 export interface BodyWeightEntry {
   id: string
+  profileId: string
   date: string // YYYY-MM-DD
   weight: number
 }
 
 export interface Settings {
+  /** `${profileId}:${adı}` şeklinde oluşturulur. */
   key: string
+  profileId: string
   value: string
 }

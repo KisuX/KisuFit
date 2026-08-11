@@ -2,18 +2,20 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Target, Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
-import { db, newId } from '../../db/db'
+import { db, newId, settingKey } from '../../db/db'
 import { WeightChart } from './WeightChart'
 import { GoalWeightSheet } from './GoalWeightSheet'
 import { formatDateShort, todayStr } from '../../utils/format'
+import { useProfile } from '../../context/ProfileContext'
 
 export function WeightPage() {
+  const { profileId } = useProfile()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [weightInput, setWeightInput] = useState('')
   const [dateInput, setDateInput] = useState(todayStr())
 
-  const entries = useLiveQuery(() => db.bodyWeightEntries.orderBy('date').toArray(), []) ?? []
-  const goalSetting = useLiveQuery(() => db.settings.get('goalWeight'), [])
+  const entries = useLiveQuery(() => db.bodyWeightEntries.where('profileId').equals(profileId).sortBy('date'), [profileId]) ?? []
+  const goalSetting = useLiveQuery(() => db.settings.get(settingKey(profileId, 'goalWeight')), [profileId])
   const goal = goalSetting ? parseFloat(goalSetting.value) : null
 
   const current = entries.length > 0 ? entries[entries.length - 1] : null
@@ -21,18 +23,22 @@ export function WeightPage() {
   const remaining = current && goal ? Math.abs(current.weight - goal) : null
 
   async function saveGoal(value: number) {
-    await db.settings.put({ key: 'goalWeight', value: String(value) })
+    await db.settings.put({ key: settingKey(profileId, 'goalWeight'), profileId, value: String(value) })
     setSheetOpen(false)
   }
 
   async function addEntry() {
     const num = parseFloat(weightInput.replace(',', '.'))
     if (!Number.isFinite(num) || num <= 0 || !dateInput) return
-    const existing = await db.bodyWeightEntries.where('date').equals(dateInput).first()
+    const existing = await db.bodyWeightEntries
+      .where('date')
+      .equals(dateInput)
+      .and((e) => e.profileId === profileId)
+      .first()
     if (existing) {
       await db.bodyWeightEntries.update(existing.id, { weight: num })
     } else {
-      await db.bodyWeightEntries.add({ id: newId(), date: dateInput, weight: num })
+      await db.bodyWeightEntries.add({ id: newId(), profileId, date: dateInput, weight: num })
     }
     setWeightInput('')
   }

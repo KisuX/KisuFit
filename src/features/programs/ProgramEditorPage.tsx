@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { ExerciseCard, type ExerciseConfig } from './ExerciseCard'
 import { useAllExercises } from '../../hooks/useAllExercises'
 import { db, newId } from '../../db/db'
+import { useProfile } from '../../context/ProfileContext'
 import type { EditorContext } from './editorContext'
 import type { Exercise } from '../../types'
 
@@ -37,6 +38,7 @@ export function ProgramEditorPage() {
   const incoming = (location.state as { editorContext?: EditorContext } | null)?.editorContext
   const programId = incoming?.programId
   const allExercises = useAllExercises()
+  const { profileId } = useProfile()
 
   const [name, setName] = useState(incoming?.name ?? '')
   const [configs, setConfigs] = useState<ExerciseConfig[]>(incoming?.configs ?? [])
@@ -71,11 +73,12 @@ export function ProgramEditorPage() {
       await db.programExercises.where('programId').equals(id).delete()
     } else {
       id = newId()
-      await db.programs.add({ id, name: name.trim(), createdAt: now, updatedAt: now })
+      await db.programs.add({ id, profileId, name: name.trim(), createdAt: now, updatedAt: now })
     }
     await db.programExercises.bulkAdd(
       configs.map((c, i) => ({
         id: newId(),
+        profileId,
         programId: id!,
         exerciseId: c.exerciseId,
         order: i,

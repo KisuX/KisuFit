@@ -6,11 +6,12 @@ interface RecentWorkoutCardProps {
   session: WorkoutSession
   totalSets: number
   totalVolume: number
+  onClick?: () => void
 }
 
-export function RecentWorkoutCard({ session, totalSets, totalVolume }: RecentWorkoutCardProps) {
+export function RecentWorkoutCard({ session, totalSets, totalVolume, onClick }: RecentWorkoutCardProps) {
   return (
-    <div className="rounded-2xl bg-[var(--color-surface)] p-4">
+    <button onClick={onClick} className="w-full rounded-2xl bg-[var(--color-surface)] p-4 text-left active:opacity-80">
       <div className="mb-3 flex items-start justify-between">
         <div>
           <div className="font-semibold">{session.programName}</div>
@@ -28,6 +29,6 @@ export function RecentWorkoutCard({ session, totalSets, totalVolume }: RecentWor
           <TrendingUp size={14} /> {totalVolume} kg
         </span>
       </div>
-    </div>
+    </button>
   )
 }

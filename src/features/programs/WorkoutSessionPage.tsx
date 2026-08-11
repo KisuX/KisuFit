@@ -6,6 +6,7 @@ import { X, Trophy, SkipForward, Trash2, Play, Pause, Menu, AlarmClock } from 'l
 import confetti from 'canvas-confetti'
 import { db, newId } from '../../db/db'
 import { useAllExercises } from '../../hooks/useAllExercises'
+import { useProfile } from '../../context/ProfileContext'
 import { NumberStepper } from '../../components/common/NumberStepper'
 import { weightStep } from '../../utils/steppers'
 import { ExerciseSwitcherSheet } from './ExerciseSwitcherSheet'
@@ -41,8 +42,13 @@ export function WorkoutSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
   const allExercises = useAllExercises()
+  const { profileId } = useProfile()
 
-  const session = useLiveQuery(() => (sessionId ? db.workoutSessions.get(sessionId) : undefined), [sessionId])
+  const session = useLiveQuery(async () => {
+    if (!sessionId) return undefined
+    const s = await db.workoutSessions.get(sessionId)
+    return s && s.profileId === profileId ? s : undefined
+  }, [sessionId, profileId])
   const programExercises = useLiveQuery(async () => {
     if (!session) return [] as ProgramExercise[]
     return db.programExercises.where('programId').equals(session.programId).sortBy('order')
@@ -125,12 +131,12 @@ export function WorkoutSessionPage() {
       setPersonalRecord(null)
       timeUpAlerted.current = false
     } else {
-      getLastSetPerformance(current.exerciseId, setIndex + 1).then((suggestion) => {
+      getLastSetPerformance(profileId, current.exerciseId, setIndex + 1).then((suggestion) => {
         if (cancelled) return
         setReps(suggestion?.reps ?? current.reps)
         setWeight(suggestion?.weight ?? current.weight)
       })
-      getPersonalRecord(current.exerciseId).then((pr) => {
+      getPersonalRecord(profileId, current.exerciseId).then((pr) => {
         if (!cancelled) setPersonalRecord(pr)
       })
     }
@@ -138,14 +144,14 @@ export function WorkoutSessionPage() {
     return () => {
       cancelled = true
     }
-  }, [current, setIndex, isCardio])
+  }, [current, setIndex, isCardio, profileId])
 
   async function deleteRecord() {
     if (!personalRecord) return
     const ok = window.confirm('Bu rekor kaydını silmek istediğine emin misin?')
     if (!ok || !current) return
     await db.setLogs.delete(personalRecord.id)
-    setPersonalRecord(await getPersonalRecord(current.exerciseId))
+    setPersonalRecord(await getPersonalRecord(profileId, current.exerciseId))
   }
 
   const totalExercises = programExercises?.length ?? 0
@@ -160,6 +166,7 @@ export function WorkoutSessionPage() {
       setCardioRunning(false)
       await db.setLogs.add({
         id: newId(),
+        profileId,
         sessionId,
         exerciseId: current.exerciseId,
         exerciseName: currentExercise.name,
@@ -173,11 +180,12 @@ export function WorkoutSessionPage() {
         completedAt: Date.now(),
       })
     } else {
-      const result = await evaluatePersonalRecord(current.exerciseId, weight, reps)
+      const result = await evaluatePersonalRecord(profileId, current.exerciseId, weight, reps)
       isPR = result.isWeightPR || result.isRepPR
       type = result.isWeightPR && result.isRepPR ? 'both' : result.isWeightPR ? 'weight' : result.isRepPR ? 'reps' : null
       await db.setLogs.add({
         id: newId(),
+        profileId,
         sessionId,
         exerciseId: current.exerciseId,
         exerciseName: currentExercise.name,
@@ -357,12 +365,15 @@ export function WorkoutSessionPage() {
             {personalRecord && (
               <div className="mt-4 flex items-center gap-2 text-xs text-[var(--color-muted)]">
                 <Trophy size={13} className="text-[var(--color-gold)]" />
-                <span>
+                <button
+                  onClick={() => navigate(`/hareket/${current.exerciseId}`)}
+                  className="text-left underline-offset-2 hover:underline"
+                >
                   Kişisel Rekor:{' '}
                   <span className="font-semibold text-[var(--color-text)]">
                     {personalRecord.reps} tekrar × {personalRecord.weight} kg
                   </span>
-                </span>
+                </button>
                 <button
                   onClick={deleteRecord}
                   aria-label="Rekor kaydını sil"

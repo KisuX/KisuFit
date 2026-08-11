@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { Dumbbell, Scale, Flame, Settings } from 'lucide-react'
-import { db } from '../../db/db'
+import { db, settingKey } from '../../db/db'
 import { computeSessionStats } from '../../utils/workout'
+import { useProfile } from '../../context/ProfileContext'
 import { RecentWorkoutCard } from './RecentWorkoutCard'
 import { WeightTrendMini } from './WeightTrendMini'
 
@@ -23,23 +24,28 @@ function greeting() {
 
 export function HomePage() {
   const navigate = useNavigate()
+  const { profileId } = useProfile()
 
   const data = useLiveQuery(async () => {
     const weekStart = startOfWeek(new Date())
-    const finishedSessions = await db.workoutSessions.filter((s) => s.finishedAt !== null).toArray()
+    const finishedSessions = await db.workoutSessions
+      .where('profileId')
+      .equals(profileId)
+      .filter((s) => s.finishedAt !== null)
+      .toArray()
     finishedSessions.sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))
     const weeklyCount = finishedSessions.filter((s) => (s.finishedAt ?? 0) >= weekStart).length
     const lastSession = finishedSessions[0] ?? null
     const lastStats = lastSession ? await computeSessionStats(lastSession.id, lastSession.durationSec) : null
 
-    const weightEntries = await db.bodyWeightEntries.orderBy('date').toArray()
-    const goalSetting = await db.settings.get('goalWeight')
+    const weightEntries = await db.bodyWeightEntries.where('profileId').equals(profileId).sortBy('date')
+    const goalSetting = await db.settings.get(settingKey(profileId, 'goalWeight'))
     const goal = goalSetting ? parseFloat(goalSetting.value) : null
     const currentWeight = weightEntries.length > 0 ? weightEntries[weightEntries.length - 1].weight : null
     const remaining = currentWeight !== null && goal ? Math.abs(currentWeight - goal) : null
 
     return { weeklyCount, lastSession, lastStats, weightEntries, currentWeight, remaining }
-  }, [])
+  }, [profileId])
 
   const hasAnyData = data && (data.lastSession || data.weightEntries.length > 0)
 
@@ -80,11 +86,17 @@ export function HomePage() {
 
       {data?.lastSession && data.lastStats && (
         <div className="mb-5">
-          <div className="mb-2 text-sm font-semibold">Son Antrenman</div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-semibold">Son Antrenman</span>
+            <button onClick={() => navigate('/gecmis')} className="text-xs font-medium text-[var(--color-accent)]">
+              Tüm Antrenmanları Gör
+            </button>
+          </div>
           <RecentWorkoutCard
             session={data.lastSession}
             totalSets={data.lastStats.totalSets}
             totalVolume={data.lastStats.totalVolume}
+            onClick={() => navigate(`/gecmis/${data.lastSession!.id}`)}
           />
         </div>
       )}

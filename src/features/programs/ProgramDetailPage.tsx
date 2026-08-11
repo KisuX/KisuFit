@@ -6,26 +6,29 @@ import { Fab } from '../../components/common/Fab'
 import { db, newId } from '../../db/db'
 import { useAllExercises } from '../../hooks/useAllExercises'
 import { formatRest } from '../../utils/format'
+import { useProfile } from '../../context/ProfileContext'
 import type { EditorContext } from './editorContext'
 
 export function ProgramDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const allExercises = useAllExercises()
+  const { profileId } = useProfile()
 
   const data = useLiveQuery(async () => {
     if (!id) return null
     const program = await db.programs.get(id)
-    if (!program) return null
+    if (!program || program.profileId !== profileId) return null
     const exercises = await db.programExercises.where('programId').equals(id).sortBy('order')
     return { program, exercises }
-  }, [id])
+  }, [id, profileId])
 
   async function startWorkout() {
     if (!data) return
     const sessionId = newId()
     await db.workoutSessions.add({
       id: sessionId,
+      profileId,
       programId: data.program.id,
       programName: data.program.name,
       startedAt: Date.now(),

@@ -5,18 +5,20 @@ import { Trophy, Clock, Layers, TrendingUp } from 'lucide-react'
 import { db } from '../../db/db'
 import { computeSessionStats } from '../../utils/workout'
 import { formatDuration } from '../../utils/format'
+import { useProfile } from '../../context/ProfileContext'
 
 export function WorkoutSummaryPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
+  const { profileId } = useProfile()
 
   const data = useLiveQuery(async () => {
     if (!sessionId) return null
     const session = await db.workoutSessions.get(sessionId)
-    if (!session) return null
+    if (!session || session.profileId !== profileId) return null
     const stats = await computeSessionStats(sessionId, session.durationSec)
     return { session, stats }
-  }, [sessionId])
+  }, [sessionId, profileId])
 
   if (data === undefined) return null
   if (data === null) {
@@ -62,8 +64,14 @@ export function WorkoutSummaryPage() {
       <div className="flex-1" />
 
       <button
+        onClick={() => navigate(`/gecmis/${sessionId}`)}
+        className="mt-8 w-full rounded-xl bg-[var(--color-surface)] py-3 text-center text-sm font-medium"
+      >
+        Detayları Gör
+      </button>
+      <button
         onClick={() => navigate('/programlar', { replace: true })}
-        className="mb-10 mt-8 w-full rounded-xl bg-[var(--color-accent)] py-3.5 text-center font-semibold text-white"
+        className="mb-10 mt-3 w-full rounded-xl bg-[var(--color-accent)] py-3.5 text-center font-semibold text-white"
       >
         Bitir
       </button>

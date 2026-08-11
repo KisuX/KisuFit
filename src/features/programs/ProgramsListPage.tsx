@@ -4,12 +4,15 @@ import { useNavigate } from 'react-router-dom'
 import { db } from '../../db/db'
 import { Fab } from '../../components/common/Fab'
 import { formatDateLong } from '../../utils/format'
+import { useProfile } from '../../context/ProfileContext'
 
 export function ProgramsListPage() {
   const navigate = useNavigate()
+  const { profileId } = useProfile()
 
   const programs = useLiveQuery(async () => {
-    const all = await db.programs.orderBy('createdAt').reverse().toArray()
+    const all = await db.programs.where('profileId').equals(profileId).sortBy('createdAt')
+    all.reverse()
     return Promise.all(
       all.map(async (p) => {
         const exerciseCount = await db.programExercises.where('programId').equals(p.id).count()
@@ -22,7 +25,7 @@ export function ProgramsListPage() {
         return { ...p, exerciseCount, lastDate: last?.finishedAt ?? null }
       }),
     )
-  }, [])
+  }, [profileId])
 
   return (
     <div className="px-4 pt-6">
